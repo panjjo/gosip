@@ -1,4 +1,4 @@
-FROM harbor.yunss.com:5000/base/base:latest
+FROM ubuntu
 ADD srv /
 ADD config.yml /
 ENTRYPOINT [ "/srv" ]
