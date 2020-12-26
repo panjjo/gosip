@@ -3,6 +3,7 @@ sipserver,GB28181,ZLMediaKit
 
 # gosip
 和 [ZLMediaKit](https://github.com/xia-chu/ZLMediaKit) 一起使用
+zlm免编译docker镜像 [zlm docker image](https://hub.docker.com/repository/docker/panjjo/zlmediakit)
 # SIP
 ---
 ## 功能描述
