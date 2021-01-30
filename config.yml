@@ -7,11 +7,11 @@ api: 0.0.0.0:8090 # sip服务 restfulapi 端口
 secret: z9hG4bK1233983766 # restful接口验证key 验证请求使用
 logger: info
 media:
-  restful: http://mediaserver # media 服务器restfulapi地址 
-  http: http://mediaserver # media 服务器 http请求地址
-  WS: ws://mediaserver # media 服务器 ws请求地址
-  rtmp: rtmp://mediaserver:5555  # media 服务器 rtmp请求地址
-  rtp: http://192.168.1.90:10000  # media rtp请求地址 zlm对外开放的接受rtp推流的地址
+  restful: http://127.0.0.1:8080 # media 服务器restfulapi地址 
+  http: http://127.0.0.1:8080  # media 服务器 http请求地址
+  WS: ws://127.0.0.1:8080  # media 服务器 ws请求地址
+  rtmp: rtmp://127.0.0.1:1935  # media 服务器 rtmp请求地址
+  rtp: http://127.0.0.1:10000  # media rtp请求地址 zlm对外开放的接受rtp推流的地址
   secret: 035c73f7-bb63-4889-a715-d9eb2d2925cc # zlm secret key 用来请求zlm接口验证
 stream:
   hls: 1 # 是否开启视频流转hls
