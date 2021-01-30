@@ -5,8 +5,9 @@ sipserver,GB28181,ZLMediaKit
 和 [ZLMediaKit](https://github.com/xia-chu/ZLMediaKit) 一起使用
 zlm免编译docker镜像 [zlm docker image](https://hub.docker.com/repository/docker/panjjo/zlmediakit)
 交流方式：请加QQ群-542509000，@bzfj
-# SIP
 ---
+## 快速开始
+运行demo下面对应执行文件 ./demo/gosip_linux
 ## 功能描述
 ### 设备管理
 - 设备分类
