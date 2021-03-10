@@ -1,6 +1,7 @@
 mod: debug
 database:
-  addr: mongodb://192.168.1.35:27097 # mongo数据库地址
+  #addr: mongodb://192.168.1.35:27097 # mongo数据库地址
+  addr: mongodb://localhost:27017 # mongo数据库地址
   db: sip
 udp: 0.0.0.0:5060 # sip服务器udp端口
 api: 0.0.0.0:8090 # sip服务 restfulapi 端口

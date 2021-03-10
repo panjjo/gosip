@@ -3,7 +3,7 @@ package sip
 import (
 	"bufio"
 	"bytes"
-	"fmt"
+	"io"
 	"net"
 	"strings"
 	"sync"
@@ -20,9 +20,9 @@ type Packet struct {
 	bodylength int
 }
 
-func newPacket(data []byte, raddr net.Addr) *Packet {
+func newPacket(data []byte, raddr net.Addr) Packet {
 	logrus.Traceln("receive new packet,from:", raddr.String(), string(data))
-	return &Packet{
+	return Packet{
 		reader:     bufio.NewReader(bytes.NewReader(data)),
 		raddr:      raddr,
 		bodylength: getBodyLength(data),
@@ -50,12 +50,13 @@ func (p *Packet) getBody() (string, error) {
 	}
 	body := make([]byte, p.bodylength)
 	if p.bodylength > 0 {
-		n, err := p.reader.Read(body)
+		n, err := io.ReadFull(p.reader, body)
 		if err != nil {
 			return "", err
 		}
 		if n != p.bodylength {
-			return "", fmt.Errorf("body length err,%d!=%d,body:%s", n, p.bodylength, string(body))
+			logrus.Warningf("body length err,%d!=%d,body:%s", n, p.bodylength, string(body))
+			return string(body[:n]), nil
 		}
 	}
 	return string(body), nil

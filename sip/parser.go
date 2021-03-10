@@ -558,12 +558,12 @@ func parseRecordRouteHeader(headerName string, headerText string) (headers []Hea
 
 type parser struct {
 	out    chan Message
-	in     chan *Packet
+	in     chan Packet
 	isStop bool
 }
 
 func newParser() *parser {
-	p := &parser{out: make(chan Message), in: make(chan *Packet)}
+	p := &parser{out: make(chan Message), in: make(chan Packet)}
 	go p.start()
 	return p
 }
@@ -574,13 +574,14 @@ func (p *parser) stop() {
 func (p *parser) start() {
 	var termErr error
 	var msg Message
-	var packet *Packet
+	var packet Packet
 
 	for !p.isStop {
 		packet = <-p.in
 		startLine, err := packet.nextLine()
 		if err != nil {
 			logrus.Errorln(err, "parserMessage", "getStartLine", startLine)
+			continue
 		}
 		if isRequest(startLine) {
 			method, recipient, sipVersion, err := ParseRequestLine(startLine)
@@ -642,6 +643,9 @@ func (p *parser) start() {
 		// Store the headers in the message object.
 		for _, header := range headers {
 			msg.AppendHeader(header)
+		}
+		if length, ok := msg.ContentLength(); ok {
+			packet.bodylength = int(*length)
 		}
 		body, err := packet.getBody()
 		if err != nil {

@@ -135,7 +135,7 @@ func checkStream() {
 				continue
 			}
 			if response.StatusCode() != http.StatusOK {
-				if response.StatusCode() == http.StatusNotFound {
+				if response.StatusCode() == 481 {
 					logrus.Infoln("checkStreamClosedFail1", stream.SSRC, response.StatusCode())
 					dbClient.Update(streamTB, M{"ssrc": stream.SSRC, "stop": false}, M{"$set": M{"err": response.Reason(), "status": 1}})
 				} else {
