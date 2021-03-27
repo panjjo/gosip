@@ -28,7 +28,7 @@ type playParams struct {
 
 // sip 请求播放
 func sipPlay(data playParams) interface{} {
-	device := DeviceItem{}
+	device := Devices{}
 	if err := dbClient.Get(deviceTB, M{"deviceid": data.DeviceID}, &device); err != nil {
 		if err == ErrRecordNouFound {
 			return "监控设备不存在"
@@ -73,7 +73,7 @@ func sipPlay(data playParams) interface{} {
 
 var ssrcLock *sync.Mutex
 
-func sipPlayPush(data playParams, device DeviceItem, user NVRDevices) (playParams, error) {
+func sipPlayPush(data playParams, device Devices, user NVRDevices) (playParams, error) {
 	var (
 		s sdp.Session
 		b []byte

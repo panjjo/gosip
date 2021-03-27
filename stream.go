@@ -95,11 +95,11 @@ func checkStream() {
 			}
 			logrus.Debugln("checkStreamClosed", stream.SSRC, stream.UserID)
 			// 关闭此流
-			device := DeviceItem{}
+			device := Devices{}
 			if err := dbClient.Get(deviceTB, M{"deviceid": stream.DeviceID}, &device); err != nil {
 				logrus.Errorln("checkStreamGetDeviceError", stream.SSRC, stream.DeviceID, err)
 				dbClient.Update(streamTB, M{"ssrc": stream.SSRC, "stop": false}, M{"$set": M{"err": err.Error()}})
-				device = DeviceItem{
+				device = Devices{
 					DeviceID: stream.DeviceID,
 					URIStr:   fmt.Sprintf("sip:%s@%s", stream.DeviceID, _serverDevices.Region),
 				}

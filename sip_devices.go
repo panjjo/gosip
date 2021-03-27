@@ -81,6 +81,8 @@ type Devices struct {
 	// Active 最后活跃时间
 	Active int64  `bson:"active" json:"active"`
 	URIStr string `bson:"uri" json:"uri"`
+
+	addr *sip.Address `bson:"-"`
 }
 
 // 从请求中解析出设备信息
@@ -191,38 +193,11 @@ func sipMessageDeviceInfo(u NVRDevices, body string) error {
 
 // MessageDeviceListResponse 设备明细列表返回结构
 type MessageDeviceListResponse struct {
-	CmdType  string       `xml:"CmdType"`
-	SN       int          `xml:"SN"`
-	DeviceID string       `xml:"DeviceID"`
-	SumNum   int          `xml:"SumNum"`
-	Item     []DeviceItem `xml:"DeviceList>Item"`
-}
-
-// DeviceItem 设备明细结构
-type DeviceItem struct {
-	// DeviceID 设备编号
-	DeviceID string `xml:"DeviceID" bson:"deviceid" json:"deviceid"`
-	// Name 设备名称
-	Name         string `xml:"Name" bson:"name" json:"name"`
-	Manufacturer string `xml:"Manufacturer" bson:"manufacturer" json:"manufacturer"`
-	Model        string `xml:"Model" bson:"model" json:"model"`
-	Owner        string `xml:"Owner" bson:"owner" json:"owner"`
-	CivilCode    string `xml:"CivilCode" bson:"civilcode" json:"civilcode"`
-	// Address ip地址
-	Address     string `xml:"Address" bson:"address" json:"address"`
-	Parental    int    `xml:"Parental" bson:"parental" json:"parental"`
-	SafetyWay   int    `xml:"SafetyWay" bson:"safetyway" json:"safetyway"`
-	RegisterWay int    `xml:"RegisterWay" bson:"registerway" json:"registerway"`
-	Secrecy     int    `xml:"Secrecy" bson:"secrecy" json:"secrecy"`
-	// Status 状态  on 在线
-	Status string `xml:"Status" bson:"status" json:"status"`
-	// PDID 所属用户id
-	PDID string `bson:"pdid" json:"pdid"`
-	// Active 最后活跃时间
-	Active int64  `bson:"active" json:"active"`
-	URIStr string `bson:"uri" json:"uri"`
-
-	addr *sip.Address `bson:"-"`
+	CmdType  string    `xml:"CmdType"`
+	SN       int       `xml:"SN"`
+	DeviceID string    `xml:"DeviceID"`
+	SumNum   int       `xml:"SumNum"`
+	Item     []Devices `xml:"DeviceList>Item"`
 }
 
 func sipMessageCatalog(u NVRDevices, body string) error {
@@ -232,14 +207,14 @@ func sipMessageCatalog(u NVRDevices, body string) error {
 		return err
 	}
 	if message.SumNum > 0 {
-		device := &DeviceItem{}
+		device := Devices{}
 		for _, d := range message.Item {
 			if err := dbClient.Get(deviceTB, M{"deviceid": d.DeviceID, "pdid": message.DeviceID}, device); err == nil {
-				d.PDID = message.DeviceID
-				d.Active = time.Now().Unix()
-				d.URIStr = fmt.Sprintf("sip:%s@%s", d.DeviceID, _sysinfo.Region)
-				d.Status = transDeviceStatus(d.Status)
-				dbClient.Update(deviceTB, M{"deviceid": d.DeviceID, "pdid": d.PDID}, M{"$set": d})
+				device.PDID = message.DeviceID
+				device.Active = time.Now().Unix()
+				device.URIStr = fmt.Sprintf("sip:%s@%s", d.DeviceID, _sysinfo.Region)
+				device.Status = transDeviceStatus(d.Status)
+				dbClient.Update(deviceTB, M{"deviceid": d.DeviceID, "pdid": d.PDID}, M{"$set": device})
 			} else {
 				logrus.Infoln("deviceid not found,deviceid:", d.DeviceID, "pdid:", message.DeviceID)
 			}

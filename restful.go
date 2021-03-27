@@ -155,7 +155,7 @@ func apiNewDevices(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		_apiResponse(w, statusDBERR, err)
 		return
 	}
-	device := DeviceItem{
+	device := Devices{
 		DeviceID: fmt.Sprintf("%s%06d", _sysinfo.DID, _sysinfo.DNUM+1),
 		PDID:     id,
 	}
@@ -178,7 +178,7 @@ func apiDelDevices(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		_apiResponse(w, statusParamsERR, "缺少监控设备ID")
 		return
 	}
-	user := DeviceItem{}
+	user := Devices{}
 	err := dbClient.Get(deviceTB, M{"deviceid": id}, &user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -247,7 +247,7 @@ func apiStopPlay(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 // 获取录像文件列表
 func apiFileList(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
-	device := DeviceItem{}
+	device := Devices{}
 	if err := dbClient.Get(deviceTB, M{"deviceid": id}, &device); err != nil {
 		if err == mongo.ErrNoDocuments {
 			_apiResponse(w, statusParamsERR, "监控设备不存在")
