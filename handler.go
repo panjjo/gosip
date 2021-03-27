@@ -87,6 +87,8 @@ func handlerRegister(req *sip.Request, tx *sip.Transaction) {
 			if auth.CalcResponse() == auth.Get("response") {
 				// 验证成功
 				// 记录活跃设备
+				user.source = fromUser.source
+				user.addr = fromUser.addr
 				_activeDevices.Store(user.DeviceID, user)
 				if !user.Regist {
 					// 第一次激活，保存数据库

@@ -89,6 +89,10 @@ func checkStream() {
 			if !ok {
 				continue
 			}
+			if user.source == nil {
+				logrus.Warningln("checkStreamUserSource is nil", stream.SSRC, stream.UserID)
+				continue
+			}
 			logrus.Debugln("checkStreamClosed", stream.SSRC, stream.UserID)
 			// 关闭此流
 			device := DeviceItem{}
