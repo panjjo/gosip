@@ -214,7 +214,7 @@ func sipMessageCatalog(u NVRDevices, body string) error {
 				device.Active = time.Now().Unix()
 				device.URIStr = fmt.Sprintf("sip:%s@%s", d.DeviceID, _sysinfo.Region)
 				device.Status = transDeviceStatus(d.Status)
-				dbClient.Update(deviceTB, M{"deviceid": d.DeviceID, "pdid": d.PDID}, M{"$set": device})
+				dbClient.Update(deviceTB, M{"deviceid": d.DeviceID, "pdid": message.DeviceID}, M{"$set": device})
 			} else {
 				logrus.Infoln("deviceid not found,deviceid:", d.DeviceID, "pdid:", message.DeviceID)
 			}
