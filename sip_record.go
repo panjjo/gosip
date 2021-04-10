@@ -3,6 +3,8 @@ package main
 import (
 	"errors"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sort"
 	"sync"
 	"time"
@@ -198,4 +200,27 @@ func transRecordList(data [][]int64) RecordResponse {
 	}
 	res.Data = resData
 	return res
+}
+
+func clearRecordFile() {
+	var files []RecordFiles
+	var ids []string
+	for {
+		files = []RecordFiles{}
+		ids = []string{}
+		dbClient.Find(fileTB, M{"end": M{"$lt": time.Now().Unix() - int64(config.Record.Expire)*86400}, "clear": false}, 0, 100, "start", false, &files)
+		for _, file := range files {
+			filename := filepath.Join(config.Record.FilePath, file.File)
+			if _, err := os.Stat(filename); err == nil {
+				os.Remove(filename)
+			}
+			ids = append(ids, file.ID)
+		}
+		if len(ids) > 0 {
+			dbClient.UpdateMany(fileTB, M{"id": M{"$in": ids}}, M{"$set": M{"clear": true}})
+		}
+		if len(files) != 100 {
+			break
+		}
+	}
 }

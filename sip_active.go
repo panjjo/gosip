@@ -30,5 +30,6 @@ func sipMessageKeepalive(u NVRDevices, body string) error {
 		update["active"] = -1
 		_activeDevices.Delete(u.DeviceID)
 	}
+	go notify(notifyUserAcitve(u.DeviceID, message.Status))
 	return dbClient.Update(userTB, M{"deviceid": u.DeviceID}, M{"$set": update})
 }

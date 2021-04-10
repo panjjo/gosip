@@ -71,6 +71,7 @@ func loadSYSInfo() {
 	_playList = playList{&sync.Map{}, &sync.Map{}, 0}
 	ssrcLock = &sync.Mutex{}
 	_recordList = &sync.Map{}
+	_apiRecordList = apiRecordList{items: map[string]*apiRecordItem{}, l: sync.RWMutex{}}
 
 	// init sysinfo
 	_sysinfo = sysInfo{}

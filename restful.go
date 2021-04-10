@@ -315,6 +315,144 @@ func apiFileList(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 }
 
+// key:ssrc  value=channel
+// 记录流录制
+var _apiRecordList apiRecordList
+
+// RecordFiles RecordFiles
+type RecordFiles struct {
+	Start  int64  `json:"start" bson:"start"`
+	End    int64  `json:"end" bson:"end"`
+	Stream string `json:"stream" bson:"stream"`
+	ID     string `json:"id" bson:"id"`
+	Status int    `json:"status" bson:"status"`
+	File   string `json:"file" bson:"file"`
+	Clear  bool   `json:"clear" bson:"clear"`
+	params url.Values
+}
+
+type apiRecordItem struct {
+	resp   chan string
+	clos   chan bool
+	params url.Values
+	req    url.Values
+	id     string
+}
+
+func (ri *apiRecordItem) start() (string, interface{}) {
+	err := zlmStartRecord(ri.params)
+	if err != nil {
+		return statusParamsERR, err
+	}
+	if config.Record.Recordmax != -1 {
+		go func() {
+			select {
+			case <-time.Tick(time.Duration(config.Record.Recordmax) * time.Second):
+				// 自动停止录制
+				ri.stop()
+				url := <-ri.resp
+				notify(notifyRecordStop(url, ri.req))
+			case <-ri.clos:
+				// 调用stop接口
+			}
+		}()
+	}
+
+	err = dbClient.Insert(fileTB, RecordFiles{
+		ID:     ri.id,
+		Stream: ri.params.Get("stream"),
+		params: ri.params,
+		Start:  time.Now().Unix(),
+	})
+	if err != nil {
+		return statusDBERR, err
+	}
+	return statusSucc, ri.id
+}
+func (ri *apiRecordItem) stop() (string, interface{}) {
+	err := zlmStopRecord(ri.params)
+	if err != nil {
+		return statusSysERR, ""
+	}
+	return statusSucc, ""
+}
+
+func (ri *apiRecordItem) down(url string) {
+	dbClient.Update(fileTB, M{"id": ri.id}, M{"$set": M{"end": time.Now().Unix(), "status": 1, "file": url}})
+}
+
+type apiRecordList struct {
+	items map[string]*apiRecordItem
+	l     sync.RWMutex
+}
+
+func (rl *apiRecordList) Get(id string) (*apiRecordItem, bool) {
+	rl.l.RLock()
+	defer rl.l.RUnlock()
+	res, ok := rl.items[id]
+	return res, ok
+}
+
+func (rl *apiRecordList) Start(id string, values url.Values) *apiRecordItem {
+	item := &apiRecordItem{resp: make(chan string, 1), clos: make(chan bool, 1), params: values, id: utils.RandString(32)}
+	rl.l.Lock()
+	rl.items[id] = item
+	rl.l.Unlock()
+	return item
+}
+func (rl *apiRecordList) Stop(id string) {
+	rl.l.Lock()
+	delete(rl.items, id)
+	rl.l.Unlock()
+}
+
+// 视频流录制 默认保存为mp4文件，录制最多录制10分钟，10分钟后自动停止，一个流只能存在一个录制
+func apiRecordStart(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	id := ps.ByName("id")
+	if _, ok := _playList.ssrcResponse.Load(id); !ok {
+		_apiResponse(w, statusParamsERR, "视频流不存在")
+		return
+	}
+	if _, ok := _apiRecordList.Get(id); ok {
+		_apiResponse(w, statusParamsERR, "视频流存在未完成录制")
+		return
+	}
+	values := url.Values{}
+	values.Set("secret", config.Media.Secret)
+	values.Set("type", "1")
+	values.Set("vhost", "__defaultVhost__")
+	values.Set("app", "rtp")
+	values.Set("stream", id)
+	req := r.URL.Query()
+	item := _apiRecordList.Start(id, values)
+	item.req = req
+	code, data := item.start()
+	if code != statusSucc {
+		_apiRecordList.Stop(id)
+		data = fmt.Sprintf("录制失败:%v", data)
+	}
+	_apiResponse(w, code, data)
+	return
+}
+
+// 停止录制，传入录制时返回的data字段
+func apiRecordStop(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	id := ps.ByName("id")
+
+	if item, ok := _apiRecordList.Get(id); !ok {
+		_apiResponse(w, statusParamsERR, "录制不存在或已结束")
+	} else {
+		code, data := item.stop()
+		if code == statusSucc {
+			item.clos <- true
+		} else {
+			data = fmt.Sprintf("停止录制失败:%v", data)
+		}
+		url := <-item.resp
+		_apiResponse(w, code, url)
+	}
+}
+
 type mediaRequest struct {
 	APP    string `json:"app"`
 	Params string `json:"params"`
@@ -394,11 +532,6 @@ func apiWebHooks(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			"enableRtxp": config.Stream.RTMP,
 			"msg":        "success",
 		})
-	case "on_record_mp4":
-		// // mp4 录制完成
-		_mediaResponse(w, map[string]interface{}{
-			"code": 0,
-			"msg":  "success"})
 	case "on_stream_none_reader":
 		// 无人阅读通知
 		sipStopPlay(req.Stream)
@@ -433,7 +566,16 @@ func apiWebHooks(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			"code": 0,
 			"msg":  "success",
 		})
-
+	case "on_record_mp4":
+		// // mp4 录制完成
+		if item, ok := _apiRecordList.Get(req.Stream); ok {
+			_apiRecordList.Stop(req.Stream)
+			item.down(req.URL)
+			item.resp <- fmt.Sprintf("%s/%s", config.Media.HTTP, req.URL)
+		}
+		_mediaResponse(w, map[string]interface{}{
+			"code": 0,
+			"msg":  "success"})
 	case "on_stream_changed":
 		ssrc := req.Stream
 		if req.Regist {
@@ -481,6 +623,8 @@ func restfulAPI() {
 	router.GET("/devices/:id/replay", apiAuthCheck(apiReplay, config.Secret))     // 回播
 	router.GET("/play/:id/stop", apiAuthCheck(apiStopPlay, config.Secret))        // 停止播放
 	router.GET("/devices/:id/files", apiAuthCheck(apiFileList, config.Secret))    // 获取历史文件
+	router.GET("/play/:id/record", apiAuthCheck(apiRecordStart, config.Secret))   // 录制
+	router.GET("/record/:id/stop", apiAuthCheck(apiRecordStop, config.Secret))    // 停止录制
 	router.POST("/index/hook/:method", apiWebHooks)
 	logrus.Fatal(http.ListenAndServe(config.API, router))
 }

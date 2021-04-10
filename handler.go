@@ -98,6 +98,7 @@ func handlerRegister(req *sip.Request, tx *sip.Transaction) {
 				}
 				tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "", ""))
 				// 注册成功后查询设备信息，获取制作厂商等信息
+				go notify(notifyUserRegister(user))
 				go sipDeviceInfo(fromUser)
 				return
 			}

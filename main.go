@@ -33,7 +33,8 @@ func init() {
 }
 
 func _cron() {
-	c := cron.New()                         // 新建一个定时任务对象
-	c.AddFunc("0 */5 * * * *", checkStream) // 定时关闭推送流
+	c := cron.New()                             // 新建一个定时任务对象
+	c.AddFunc("0 */5 * * * *", checkStream)     // 定时关闭推送流
+	c.AddFunc("0 */5 * * * *", clearRecordFile) // 定时清理录制文件
 	c.Start()
 }

@@ -209,14 +209,15 @@ func sipMessageCatalog(u NVRDevices, body string) error {
 	if message.SumNum > 0 {
 		device := Devices{}
 		for _, d := range message.Item {
-			if err := dbClient.Get(deviceTB, M{"deviceid": d.DeviceID, "pdid": message.DeviceID}, device); err == nil {
+			if err := dbClient.Get(deviceTB, M{"deviceid": d.DeviceID, "pdid": message.DeviceID}, &device); err == nil {
 				device.PDID = message.DeviceID
 				device.Active = time.Now().Unix()
 				device.URIStr = fmt.Sprintf("sip:%s@%s", d.DeviceID, _sysinfo.Region)
 				device.Status = transDeviceStatus(d.Status)
 				dbClient.Update(deviceTB, M{"deviceid": d.DeviceID, "pdid": message.DeviceID}, M{"$set": device})
+				go notify(notifyDeviceActive(device))
 			} else {
-				logrus.Infoln("deviceid not found,deviceid:", d.DeviceID, "pdid:", message.DeviceID)
+				logrus.Infoln("deviceid not found,deviceid:", d.DeviceID, "pdid:", message.DeviceID, "err", err)
 			}
 		}
 	}

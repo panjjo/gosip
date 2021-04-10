@@ -9,23 +9,30 @@ import (
 
 // Config Config
 type Config struct {
-	MOD      string      `json:"mod" yaml:"mod" mapstructure:"mod"`
-	DB       DBConfig    `json:"database" yaml:"database" mapstructure:"database"`
-	LogLevel string      `json:"logger" yaml:"logger" mapstructure:"logger"`
-	UDP      string      `json:"udp" yaml:"udp" mapstructure:"udp"`
-	API      string      `json:"api" yaml:"api" mapstructure:"api"`
-	Secret   string      `json:"secret" yaml:"secret" mapstructure:"secret"`
-	Media    MediaServer `json:"media" yaml:"media" mapstructure:"media"`
-	Stream   Stream      `json:"stream" yaml:"stream" mapstructure:"stream"`
-	MP4Path  string      `json:"mp4path" yaml:"mp4path" mapstructure:"mp4path"`
-	GB28181  sysInfo     `json:"gb28181" yaml:"gb28181" mapstructure:"gb28181"`
+	MOD       string            `json:"mod" yaml:"mod" mapstructure:"mod"`
+	DB        DBConfig          `json:"database" yaml:"database" mapstructure:"database"`
+	LogLevel  string            `json:"logger" yaml:"logger" mapstructure:"logger"`
+	UDP       string            `json:"udp" yaml:"udp" mapstructure:"udp"`
+	API       string            `json:"api" yaml:"api" mapstructure:"api"`
+	Secret    string            `json:"secret" yaml:"secret" mapstructure:"secret"`
+	Media     MediaServer       `json:"media" yaml:"media" mapstructure:"media"`
+	Stream    Stream            `json:"stream" yaml:"stream" mapstructure:"stream"`
+	Record    RecordCfg         `json:"record" yaml:"record" mapstructure:"record"`
+	GB28181   sysInfo           `json:"gb28181" yaml:"gb28181" mapstructure:"gb28181"`
+	Notify    map[string]string `json:"notify" yaml:"notify" mapstructure:"notify"`
+	notifyMap map[string]string
+}
+
+type RecordCfg struct {
+	FilePath  string `json:"filepath" yaml:"filepath" mapstructure:"filepath"`
+	Expire    int    `json:"expire" yaml:"expire"  mapstructure:"expire"`
+	Recordmax int    `json:"recordmax" yaml:"recordmax"  mapstructure:"recordmax"`
 }
 
 // Stream Stream
 type Stream struct {
-	HLS       bool  `json:"hls" yaml:"hls" mapstructure:"hls"`
-	RTMP      bool  `json:"rtmp" yaml:"rtmp" mapstructure:"rtmp"`
-	RecordMax int64 `json:"recordmax" yaml:"recordmax" mapstructure:"recordmax"`
+	HLS  bool `json:"hls" yaml:"hls" mapstructure:"hls"`
+	RTMP bool `json:"rtmp" yaml:"rtmp" mapstructure:"rtmp"`
 }
 
 // MediaServer MediaServer
@@ -66,4 +73,19 @@ func loadConfig() {
 	logrus.SetLevel(level)
 	InitDB(config.DB)
 	config.MOD = strings.ToUpper(config.MOD)
+	notifyMap := map[string]string{}
+	if config.Notify != nil {
+		for k, v := range config.Notify {
+			if v != "" {
+				notifyMap[strings.ReplaceAll(k, "_", ".")] = v
+			}
+		}
+	}
+	config.notifyMap = notifyMap
+	if config.Record.Expire == 0 {
+		config.Record.Expire = 7
+	}
+	if config.Record.Recordmax == 0 {
+		config.Record.Expire = 600
+	}
 }

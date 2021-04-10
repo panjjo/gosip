@@ -2,13 +2,21 @@
 sipserver,GB28181,ZLMediaKit
 
 # gosip
-和 [ZLMediaKit](https://github.com/xia-chu/ZLMediaKit) 一起使用
+和 [ZLMediaKit](https://github.com/xia-chu/ZLMediaKit) 一起使用，zlm配置文件中的webhook请配置为此项目的restfulapi地址，否则部分功能无法使用。
 zlm免编译docker镜像 [zlm docker image](https://hub.docker.com/repository/docker/panjjo/zlmediakit)
 交流方式：请加QQ群-542509000，@bzfj
 
 ---
 ## 快速开始
 运行demo下面对应执行文件 ./demo/gosip_linux
+## 功能支持
+- [X] 设备注册管理
+- [X] 实时预览
+- [X] 远程回放
+- [X] 历史文件获取
+- [X] 支持流管理(Mongo存储维护），服务重启不会丢失流或者出现失控流。
+- [X] 支持异步通知
+- [X] 视频留录制,文件自动清理
 ## 功能描述
 ### 设备管理
 - 设备分类
@@ -48,8 +56,13 @@ zlm免编译docker镜像 [zlm docker image](https://hub.docker.com/repository/do
 ### 历史文件
 - 操作流程
   1. 使用设备id调用/devices/:id/files 
-  2. 接口同步返回历史文件列表
-
+  2. 接口同步返回历史文件列表(可能存在超多时间段数据，同步返回最多等待10S，超时后返回10S内接收到的数据）
+### 视频录制
+- 操作流程
+  1. 使用视频流的ssrc调用接口/play/:id/record 开始录制
+  2. 使用ssrc调用接口/record/:id/stop 结束录制，同步返回录制结果
+  3. 超过录制最长时间时 通过异步notify推送录制结果，notify method：records.stop
+  4. 使用录制功能一定要将zlm的webhook的回掉地址配置为sip restfulapi地址，否则录制结果获取不到。
 ---
 ## 接口
 ### api
@@ -227,5 +240,126 @@ url = http://localhost/devices/xxxx/files //xxxx为设备通道ID
 ```
 
 
+- 开始录制接口
+  + 请求方式：GET
+  + 请求路径：/play/:id/record
+  + 请求参数
+```
+url = http://localhost/play/xxxx/record //xxxx为流ssrc
+{
+  
+}
+```
+
+  + 返回参数
+```
+{
+    "code": "0",
+    "data": "pQg0wZvXucIt0PVGkn9yNSh0kwvHb4gP",
+    "time": 1618043462,
+    "id": "MCpWLu9D4bp3iQ5g"
+}
+```
 
 
+- 停止录制接口
+  + 请求方式：GET
+  + 请求路径：/record/:id/stop
+  + 请求参数
+```
+url = http://localhost/record/xxxx/stop //xxxx为流ssrc
+{
+  
+}
+```
+
+  + 返回参数
+```
+{
+    "code": "0",
+    "data": "http://127.0.0.1:18081/record/rtp/29B92711/2021-04-10/16-31-03.mp4", // 录制文件播放或下载地址
+    "time": 1618043479,
+    "id": "VjCfI1cns4TkB77J"
+}
+```
+
+### notify
+
+- 用户注册通知
+  + 请求方式：GET
+  + 请求路径：配置文件配置
+  + 请求参数
+```
+{
+  "method": "users.regiester",
+  "data": {
+    Users // 请看用户NVR设备相关返回结构
+  }
+}
+```
+
+  + 返回参数
+```
+ok
+```
+
+- 用户活跃通知
+  + 请求方式：GET
+  + 请求路径：配置文件配置
+  + 请求参数
+```
+{
+  "method": "users.active",
+  "data": {
+    "deviceid": "xxxx", // 设备id
+    "status": "ON", // 状态 
+    "time": 17654621544 // 时间
+  }
+}
+```
+
+  + 返回参数
+```
+ok
+```
+
+- 通道活跃通知
+  + 请求方式：GET
+  + 请求路径：配置文件配置
+  + 请求参数
+```
+{
+  "method": "devices.active",
+  "data": {
+    "deviceid": "xxxx", // 设备id
+    "status": "ON", // 状态 
+    "time": 17654621544 // 时间
+  }
+}
+```
+
+  + 返回参数
+```
+ok
+```
+
+
+- 视频录制超时自动停止通知
+  + 请求方式：GET
+  + 请求路径：配置文件配置
+  + 请求参数
+```
+{
+  "method": "records.stop",
+  "data": {
+    "url": "http://xx/xx.mp4", //录制文件播放或下载地址
+    "stream": "流ssrc",
+    "app": "rtp"
+  }
+}
+```
+
+  + 返回参数
+```
+ok
+```
