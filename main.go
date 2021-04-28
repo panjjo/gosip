@@ -21,7 +21,7 @@ func main() {
 	srv = sip.NewServer()
 	srv.RegistHandler(sip.REGISTER, handlerRegister)
 	srv.RegistHandler(sip.MESSAGE, handlerMessage)
-	go srv.ListenUDPServer("0.0.0.0:5060")
+	go srv.ListenUDPServer(config.UDP)
 	restfulAPI()
 }
 
