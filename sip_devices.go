@@ -226,6 +226,7 @@ func sipMessageCatalog(u NVRDevices, body string) error {
 
 var deviceStatusMap = map[string]string{
 	"ON":     "ON",
+	"OK":     "ON",
 	"ONLINE": "ON",
 	"OFFILE": "OFF",
 	"OFF":    "OFF",

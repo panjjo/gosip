@@ -649,7 +649,7 @@ func (p *parser) start() {
 		}
 		body, err := packet.getBody()
 		if err != nil {
-			logrus.Errorln(err)
+			logrus.Errorln("readbody error:", err)
 			continue
 		}
 		if strings.TrimSpace(body) != "" {
