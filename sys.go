@@ -28,11 +28,11 @@ type sysInfo struct {
 	// UID 用户id固定头部
 	UID string `json:"uid" bson:"uid"  yaml:"uid" mapstructure:"uid"`
 	// UNUM 当前用户数
-	UNUM int `json:"unum" bson:"unum" yaml:"uid" mapstructure:"uid"`
+	UNUM int `json:"unum" bson:"unum" yaml:"unum" mapstructure:"unum"`
 	// DID 设备id固定头部
-	DID string `json:"did" bson:"did" yaml:"uid" mapstructure:"uid"`
+	DID string `json:"did" bson:"did" yaml:"did" mapstructure:"did"`
 	// DNUM 当前设备数
-	DNUM int `json:"dnum" bson:"dnum" yaml:"uid" mapstructure:"uid"`
+	DNUM int `json:"dnum" bson:"dnum" yaml:"dnum" mapstructure:"dnum"`
 	// LID 当前服务id
 	LID         string `json:"lid" bson:"lid" yaml:"lid" mapstructure:"lid"`
 	MediaServer bool
