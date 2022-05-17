@@ -41,6 +41,7 @@ type MediaServer struct {
 	HTTP    string `json:"http" yaml:"http" mapstructure:"http"`
 	WS      string `json:"ws" yaml:"ws" mapstructure:"ws"`
 	RTMP    string `json:"rtmp" yaml:"rtmp" mapstructure:"rtmp"`
+	RTSP    string `json:"rtsp" yaml:"rtsp" mapstructure:"rtsp"`
 	RTP     string `json:"rtp" yaml:"rtp" mapstructure:"rtp"`
 	Secret  string `json:"secret" yaml:"secret" mapstructure:"secret"`
 }

@@ -105,6 +105,6 @@ func handlerRegister(req *sip.Request, tx *sip.Transaction) {
 		}
 	}
 	resp := sip.NewResponseFromRequest("", req, http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized), "")
-	resp.AppendHeader(&sip.GenericHeader{HeaderName: "WWW-Authenticate", Contents: fmt.Sprintf("Digest Nonce=\"%s\" Realm=\"%s\"", req.MessageID(), req.MessageID())})
+	resp.AppendHeader(&sip.GenericHeader{HeaderName: "WWW-Authenticate", Contents: fmt.Sprintf("Digest Nonce=\"%s\", algorithm=MD5, Realm=\"%s\",qop=\"auth\"", req.MessageID(), req.MessageID())})
 	tx.Respond(resp)
 }

@@ -60,7 +60,8 @@ func sipPlay(data playParams) interface{} {
 		"ssrc":     data.SSRC,
 		"http":     fmt.Sprintf("%s/rtp/%s/hls.m3u8", config.Media.HTTP, data.SSRC),
 		"rtmp":     fmt.Sprintf("%s/rtp/%s", config.Media.RTMP, data.SSRC),
-		"ws-flv":   fmt.Sprintf("%s/rtp/%s.flv", config.Media.WS, data.SSRC),
+		"rtsp":     fmt.Sprintf("%s/rtp/%s", config.Media.RTSP, data.SSRC),
+		"ws-flv":   fmt.Sprintf("%s/rtp/%s.live.flv", config.Media.WS, data.SSRC),
 	}
 	data.UserID = user.DeviceID
 	data.ext = time.Now().Unix() + 2*60 // 2分钟等待时间
