@@ -136,17 +136,17 @@ func checkSign(uri, token string, data interface{}) (ok bool, msg string) {
 	}
 	key := []string{}
 	params := map[string]string{}
-	switch data.(type) {
+	switch data := data.(type) {
 	case url.Values:
-		for k, v := range data.(url.Values) {
+		for k, v := range data {
 			params[k] = v[0]
 			key = append(key, k)
 		}
 	case map[string]string:
-		for k := range data.(map[string]string) {
+		for k := range data {
 			key = append(key, k)
 		}
-		params = data.(map[string]string)
+		params = data
 	default:
 		return false, "type error"
 	}

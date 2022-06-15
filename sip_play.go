@@ -21,53 +21,73 @@ type playParams struct {
 	Resp       *sip.Response
 	DeviceID   string
 	UserID     string
+	Url        string
 	ext        int64  // 推流等待的过期时间，用于判断是否请求成功但推流失败。超过还未接收到推流定义为失败，重新请求推流或者关闭此ssrc
 	stream     bool   // 是否完成推流，用于web_hook 出现stream=false时等待推流，出现stream_not_found 且 stream=true表示推流过但已关闭。释放ssrc。
-	streamType string //  pull 媒体服务器主动拉流，push 监控设备主动推流
+	streamType string //  pull 媒体服务器主动拉流，push 监控设备主动推流 proxy 代理
+
 }
 
 // sip 请求播放
 func sipPlay(data playParams) interface{} {
-	device := Devices{}
-	if err := dbClient.Get(deviceTB, M{"deviceid": data.DeviceID}, &device); err != nil {
-		if err == ErrRecordNouFound {
-			return "监控设备不存在"
+	succ := map[string]interface{}{}
+	switch data.streamType {
+	case streamTypeProxy:
+		_, err := zlmAddStreamProxy(data.Url, data.DeviceID)
+		if err != nil {
+			return err
 		}
-		return err
-	}
-	if time.Now().Unix()-device.Active > 30*60 {
-		return "监控设备已离线"
-	}
-	userT := NVRDevices{}
-	if err := dbClient.Get(userTB, M{"deviceid": device.PDID}, &userT); err != nil {
-		if err == ErrRecordNouFound {
-			return "用户设备不存在"
+		succ = map[string]interface{}{
+			"deviceid": data.DeviceID,
+			"ssrc":     data.SSRC,
+			"http":     fmt.Sprintf("%s/rtp/%s/hls.m3u8", config.Media.HTTP, data.SSRC),
+			"rtmp":     fmt.Sprintf("%s/rtp/%s", config.Media.RTMP, data.SSRC),
+			"rtsp":     fmt.Sprintf("%s/rtp/%s", config.Media.RTSP, data.SSRC),
+			"ws-flv":   fmt.Sprintf("%s/rtp/%s.live.flv", config.Media.WS, data.SSRC),
 		}
-		return err
+	default:
+		device := Devices{}
+		if err := dbClient.Get(deviceTB, M{"deviceid": data.DeviceID}, &device); err != nil {
+			if err == ErrRecordNouFound {
+				return "监控设备不存在"
+			}
+			return err
+		}
+		if time.Now().Unix()-device.Active > 30*60 {
+			return "监控设备已离线"
+		}
+		userT := NVRDevices{}
+		if err := dbClient.Get(userTB, M{"deviceid": device.PDID}, &userT); err != nil {
+			if err == ErrRecordNouFound {
+				return "用户设备不存在"
+			}
+			return err
+		}
+		user, ok := _activeDevices.Get(userT.DeviceID)
+		if !ok {
+			return "用户设备已离线"
+		}
+		data.UserID = user.DeviceID
+		var err error
+		data, err = sipPlayPush(data, device, user)
+		if err != nil {
+			return fmt.Sprintf("获取视频失败:%v", err)
+		}
+		succ = map[string]interface{}{
+			"deviceid": user.DeviceID,
+			"ssrc":     data.SSRC,
+			"http":     fmt.Sprintf("%s/rtp/%s/hls.m3u8", config.Media.HTTP, data.SSRC),
+			"rtmp":     fmt.Sprintf("%s/rtp/%s", config.Media.RTMP, data.SSRC),
+			"rtsp":     fmt.Sprintf("%s/rtp/%s", config.Media.RTSP, data.SSRC),
+			"ws-flv":   fmt.Sprintf("%s/rtp/%s.live.flv", config.Media.WS, data.SSRC),
+		}
+		data.UserID = user.DeviceID
 	}
-	user, ok := _activeDevices.Get(userT.DeviceID)
-	if !ok {
-		return "用户设备已离线"
-	}
-	data.UserID = user.DeviceID
-	var err error
-	data, err = sipPlayPush(data, device, user)
-	if err != nil {
-		return fmt.Sprintf("获取视频失败:%v", err)
-	}
-	succ := map[string]interface{}{
-		"deviceid": user.DeviceID,
-		"ssrc":     data.SSRC,
-		"http":     fmt.Sprintf("%s/rtp/%s/hls.m3u8", config.Media.HTTP, data.SSRC),
-		"rtmp":     fmt.Sprintf("%s/rtp/%s", config.Media.RTMP, data.SSRC),
-		"rtsp":     fmt.Sprintf("%s/rtp/%s", config.Media.RTSP, data.SSRC),
-		"ws-flv":   fmt.Sprintf("%s/rtp/%s.live.flv", config.Media.WS, data.SSRC),
-	}
-	data.UserID = user.DeviceID
+
 	data.ext = time.Now().Unix() + 2*60 // 2分钟等待时间
 	_playList.ssrcResponse.Store(data.SSRC, data)
 	if data.T == 0 {
-		_playList.devicesSucc.Store(device.DeviceID, succ)
+		_playList.devicesSucc.Store(data.DeviceID, succ)
 	}
 	return succ
 }

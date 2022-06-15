@@ -112,8 +112,7 @@ func checkStream() {
 			for k, v := range stream.Ftag {
 				_serverDevices.addr.Params.Add(k, sip.String{Str: v})
 			}
-			var callid sip.CallID
-			callid = sip.CallID(stream.CallID)
+			callid := sip.CallID(stream.CallID)
 
 			_serverDevices.addr.Params.Add("tag", sip.String{Str: utils.RandString(20)})
 			hb := sip.NewHeaderBuilder().SetTo(device.addr).SetFrom(_serverDevices.addr).AddVia(&sip.ViaHop{

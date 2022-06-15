@@ -241,7 +241,6 @@ func apiStopPlay(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	sipStopPlay(id)
 	logrus.Infoln("closeStream apiStopPlay", id)
 	_apiResponse(w, statusSucc, "")
-	return
 }
 
 // 获取录像文件列表
@@ -432,7 +431,6 @@ func apiRecordStart(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 		data = fmt.Sprintf("录制失败:%v", data)
 	}
 	_apiResponse(w, code, data)
-	return
 }
 
 // 停止录制，传入录制时返回的data字段
@@ -451,6 +449,44 @@ func apiRecordStop(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		url := <-item.resp
 		_apiResponse(w, code, url)
 	}
+}
+
+// 拉流代理，用来转换非GB28281的播放源,代理只支持直播
+func apiAddProxy(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	url := r.URL.Query().Get("url")
+	tag := r.URL.Query().Get("tag")
+	if tag == "" || url == "" {
+		_apiResponse(w, statusParamsERR, "参数错误，url或tag为空")
+	}
+	// 代理流 tag 作为播放的ssrc和deviceid
+	// 检查tag是否存在
+	if succ, ok := _playList.devicesSucc.Load(tag); ok {
+		_apiResponse(w, statusSucc, succ)
+		return
+	}
+	// 不存在进行新增
+	d := playParams{S: time.Time{}, E: time.Time{}, DeviceID: tag, SSRC: tag, streamType: streamTypeProxy, Url: url}
+	res := sipPlay(d)
+	switch res.(type) {
+	case error, string:
+		_apiResponse(w, statusParamsERR, res)
+		return
+	default:
+		_apiResponse(w, statusSucc, res)
+		return
+	}
+}
+
+// 删除拉流代理，用来转换非GB28281的播放源,代理只支持直播
+func apiDelProxy(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	tag := r.URL.Query().Get("tag")
+	if _, ok := _playList.ssrcResponse.Load(tag); !ok {
+		_apiResponse(w, statusSucc, "视频流不存在或已关闭")
+		return
+	}
+	sipStopPlay(tag)
+	logrus.Infoln("closeStream apiStopPlay", tag)
+	_apiResponse(w, statusSucc, "")
 }
 
 type mediaRequest struct {
@@ -625,6 +661,8 @@ func restfulAPI() {
 	router.GET("/devices/:id/files", apiAuthCheck(apiFileList, config.Secret))    // 获取历史文件
 	router.GET("/play/:id/record", apiAuthCheck(apiRecordStart, config.Secret))   // 录制
 	router.GET("/record/:id/stop", apiAuthCheck(apiRecordStop, config.Secret))    // 停止录制
+	router.GET("/addproxy", apiAuthCheck(apiAddProxy, config.Secret))             // 增加拉流代理
+	router.GET("/delproxy", apiAuthCheck(apiDelProxy, config.Secret))             // 增加拉流代理
 	router.POST("/index/hook/:method", apiWebHooks)
 	logrus.Fatal(http.ListenAndServe(config.API, router))
 }

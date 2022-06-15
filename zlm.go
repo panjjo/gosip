@@ -67,3 +67,27 @@ func zlmStopRecord(values url.Values) error {
 	}
 	return nil
 }
+
+// zlm 添加流代理
+func zlmAddStreamProxy(url, tag string) (string, error) {
+	body, err := utils.PostJSONRequest(config.Media.RESTFUL+"/index/api/addStreamProxy?secret"+config.Media.Secret, map[string]interface{}{
+		"secret":     config.Media.Secret,
+		"app":        "rtp",
+		"stream":     tag,
+		"url":        url,
+		"vhost":      "__defaultVhost__",
+		"enable_hls": 1,
+	})
+	if err != nil {
+		return "", err
+	}
+	tmp := map[string]interface{}{}
+	err = utils.JSONDecode(body, &tmp)
+	if err != nil {
+		return "", err
+	}
+	if code, ok := tmp["code"]; !ok || fmt.Sprint(code) != "0" {
+		return "", utils.NewError(nil, tmp)
+	}
+	return tmp["data"].(map[string]interface{})["key"].(string), nil
+}

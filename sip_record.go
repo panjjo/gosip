@@ -61,7 +61,6 @@ type recordList struct {
 	num      int
 	data     [][]int64
 	l        *sync.Mutex
-	last     RecordItem
 	s, e     int64
 }
 

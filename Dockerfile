@@ -1,4 +1,5 @@
 FROM ubuntu
-ADD srv /
-ADD config.yml /
-ENTRYPOINT [ "/srv" ]
+ADD srv /sip/srv
+ADD config.yml /sip/config.yml
+WORKDIR /sip
+ENTRYPOINT [ "./srv" ]

@@ -283,6 +283,55 @@ url = http://localhost/record/xxxx/stop //xxxx为流ssrc
 }
 ```
 
+
+- 添加流代理
+  + 请求方式：GET
+  + 请求路径：/addproxy
+  + 请求参数
+```
+url = http://localhost/addproxy 
+{
+  "url": "拉流的地址，支持rtsp/rtmp/hls等,必传",
+  "tag": "流标识，一个流对应一个，如果存在重复的就会直接返回对应的播放地址，必传"
+}
+```
+
+  + 返回参数
+```
+{
+    "code": "0",
+    "data": {
+      "http":"参考播放接口",
+      "rtmp":"",
+      "ws-flv:""
+    },
+    "time": 1618043462,
+    "id": "MCpWLu9D4bp3iQ5g"
+}
+```
+
+
+- 删除流代理
+  + 请求方式：GET
+  + 请求路径：/delproxy
+  + 请求参数
+```
+url = http://localhost/delproxy 
+{
+  "tag": "添加流代理时的tag"
+}
+```
+
+  + 返回参数
+```
+{
+    "code": "0",
+    "data": "", 
+    "time": 1618043479,
+    "id": "VjCfI1cns4TkB77J"
+}
+```
+
 ### notify
 
 - 用户注册通知

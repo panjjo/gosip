@@ -9,8 +9,9 @@ const (
 	statusParamsERR = "1002"
 	statusSysERR    = "1003"
 
-	streamTypePull = "pull"
-	streamTypePush = "push"
+	streamTypePull  = "pull"
+	streamTypePush  = "push"
+	streamTypeProxy = "proxy"
 )
 
 var code2code = map[string]int{

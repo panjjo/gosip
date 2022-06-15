@@ -1,6 +1,6 @@
 mod: debug
 database:
-  addr: mongodb://192.168.1.35:27097 # mongo数据库地址
+  addr: mongodb://mongo:27017 # mongo数据库地址
   # addr: mongodb://localhost:27017 # mongo数据库地址
   db: sip
 udp: 0.0.0.0:5060 # sip服务器udp端口
@@ -8,11 +8,11 @@ api: 0.0.0.0:8090 # sip服务 restfulapi 端口
 secret: z9hG4bK1233983766 # restful接口验证key 验证请求使用
 logger: debug
 media:
-  restful: http://127.0.0.1:18081 # media 服务器restfulapi地址 
-  http: http://127.0.0.1:18081  # media 服务器 http请求地址
-  WS: ws://127.0.0.1:8080  # media 服务器 ws请求地址
-  rtmp: rtmp://127.0.0.1:1935  # media 服务器 rtmp请求地址
-  rtsp: rtsp://127.0.0.1:554   # media 服务器 rtsp请求地址
+  restful: http://mediaserver:80 # media 服务器restfulapi地址 
+  http: http://192.168.1.90:8080  # media 服务器 http请求地址
+  WS: ws://192.168.1.90:8080  # media 服务器 ws请求地址
+  rtmp: rtmp://192.168.1.90:1935  # media 服务器 rtmp请求地址
+  rtsp: rtsp://192.168.1.90:8554   # media 服务器 rtsp请求地址
   rtp: http://192.168.1.90:10000  # media rtp请求地址 zlm对外开放的接受rtp推流的地址
   secret: 035c73f7-bb6b-4889-a715-d9eb2d1925cc # zlm secret key 用来请求zlm接口验证
 stream:
