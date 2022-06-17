@@ -25,7 +25,7 @@ func handlerMessage(req *sip.Request, tx *sip.Transaction) {
 	// 判断是否存在body数据
 	if len, have := req.ContentLength(); !have || len.Equals(0) {
 		// 不存在就直接返回的成功
-		tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "", ""))
+		tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "OK", ""))
 		return
 	}
 	body := req.Body()
@@ -40,12 +40,12 @@ func handlerMessage(req *sip.Request, tx *sip.Transaction) {
 	case "Catalog":
 		// 设备列表
 		sipMessageCatalog(u, body)
-		tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "", ""))
+		tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "OK", ""))
 		return
 	case "Keepalive":
 		// heardbeat
 		if err := sipMessageKeepalive(u, body); err == nil {
-			tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "", ""))
+			tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "OK", ""))
 			// 心跳后同步注册设备列表信息
 			sipCatalog(u)
 			return
@@ -53,11 +53,11 @@ func handlerMessage(req *sip.Request, tx *sip.Transaction) {
 	case "RecordInfo":
 		// 设备音视频文件列表
 		sipMessageRecordInfo(u, body)
-		tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "", ""))
+		tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "OK", ""))
 	case "DeviceInfo":
 		// 主设备信息
 		sipMessageDeviceInfo(u, body)
-		tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "", ""))
+		tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "OK", ""))
 		return
 	}
 	tx.Respond(sip.NewResponseFromRequest("", req, http.StatusBadRequest, http.StatusText(http.StatusBadRequest), ""))
@@ -96,7 +96,7 @@ func handlerRegister(req *sip.Request, tx *sip.Transaction) {
 					dbClient.Update(userTB, M{"deviceid": user.DeviceID}, M{"$set": user})
 					logrus.Infoln("new user regist,id:", user.DeviceID)
 				}
-				tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "", ""))
+				tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "OK", ""))
 				// 注册成功后查询设备信息，获取制作厂商等信息
 				go notify(notifyUserRegister(user))
 				go sipDeviceInfo(fromUser)
