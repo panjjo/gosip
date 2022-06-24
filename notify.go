@@ -36,6 +36,8 @@ func notify(data *Notify) {
 			logrus.Warningln(data.Method, "send notify resp fail.", string(res), "len:", len(res), config.Notify, data)
 		}
 		logrus.Debug("notify send succ:", data.Method, data.Data)
+	} else {
+		logrus.Traceln("notify config not found", data.Method)
 	}
 }
 

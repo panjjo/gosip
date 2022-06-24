@@ -19,7 +19,7 @@ stream:
   hls: 1 # 是否开启视频流转hls
   rtmp: 1 # 是否开启视频流转rtmp
 gb28181: # gb28181 域，系统id，用户id，通道id，用户数量，初次运行使用配置，之后保存数据库，如果数据库不存在使用配置文件内容
-  lid:    37070000082008000001 # 系统ID
+  lid:    "37070000082008000001" # 系统ID
   region: 3707000008           # 系统域
   uid:    37070000081118       # 用户NVR设备前缀
   did:    37070000081318       # 通道设备前缀
@@ -30,8 +30,8 @@ record:
   filepath: /usr/share/zlm/meida # zlm 不会自动清理录制文件，需要配置录像文件路径和定时清理时间。
   expire: 5 # 录制文件录制完成后多久删除，单位天，不设置默认7天。
 notify:  
-  user_active: http://localhost:1122/user/active # 用户NVR设备活跃通知
-  device_active: http://localhost:1122/user/active # 通道设备活跃通知
-  user_regiest: http://localhost:1122/user/active # 用户设备注册成功通知
-  record_stop: http://localhost:1122/user/active # 录制文件录制完成通知  一定要配置zlm的webhook地址为此项目sip服务的restfulapi端口地址，否则录制存在问题。
+  users_active: http://localhost:1122/user/active # 用户NVR设备活跃通知
+  devices_active: http://localhost:1122/user/active # 通道设备活跃通知
+  users_regiest: http://localhost:1122/user/active # 用户设备注册成功通知
+  records_stop: http://localhost:1122/user/active # 录制文件录制完成通知  一定要配置zlm的webhook地址为此项目sip服务的restfulapi端口地址，否则录制存在问题。
 
