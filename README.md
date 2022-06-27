@@ -8,7 +8,8 @@ zlm免编译docker镜像 [zlm docker image](https://hub.docker.com/repository/do
 
 ---
 ## 快速开始
-运行demo下面对应执行文件 ./demo/gosip_linux
+参考demo/docker下的docker-compose部署说明。
+
 ## 功能支持
 - [X] 设备注册管理
 - [X] 实时预览
