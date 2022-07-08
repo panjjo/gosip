@@ -22,7 +22,7 @@ func sipMessageKeepalive(u NVRDevices, body string) error {
 		logrus.Errorln("Message Unmarshal xml err:", err, "body:", body)
 		return err
 	}
-	update := M{}
+	update := M{"host": u.Host, "port": u.Port, "report": u.Rport, "raddr": u.RAddr, "source": u.Source}
 	if message.Status == "OK" {
 		update["active"] = time.Now().Unix()
 		_activeDevices.Store(u.DeviceID, u)

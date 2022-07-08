@@ -36,7 +36,7 @@ type NVRDevices struct {
 	RAddr string `json:"raddr" bson:"raddr"`
 	// Manufacturer 制造厂商
 	Manufacturer string `xml:"Manufacturer" bson:"manufacturer" json:"manufacturer"`
-	// 设备类型DVR，NVR
+	// 设备类型DVR，NVR
 	DeviceType string `xml:"DeviceType" bson:"devicetype" json:"devicetype"`
 	// Firmware 固件版本
 	Firmware string `bson:"firmware" json:"firmware"`
@@ -49,6 +49,8 @@ type NVRDevices struct {
 	Regist bool `json:"regist" bson:"regist"`
 	// PWD 密码
 	PWD string `json:"pwd" bson:"pwd"`
+	// Source
+	Source string `json:"source" bson:"source"`
 
 	Sys sysInfo `json:"sysinfo" bson:"-"`
 
@@ -82,7 +84,51 @@ type Devices struct {
 	Active int64  `bson:"active" json:"active"`
 	URIStr string `bson:"uri" json:"uri"`
 
+	// 视频编码格式
+	VF string `bson:"vf" json:"vf"`
+	// 视频高
+	Height int `json:"height"`
+	// 视频宽
+	Width int `json:"width"`
+	// 视频FPS
+	FPS int `json:"fps"`
+
 	addr *sip.Address `bson:"-"`
+}
+
+// 同步摄像头编码格式
+func syncDevicesCodec(ssrc, deviceid string) {
+	resp := zlmGetMediaList(zlmGetMediaListReq{streamID: ssrc})
+	if resp.Code != 0 {
+		logrus.Errorln("syncDevicesCodec fail", ssrc, resp)
+		return
+	}
+	if len(resp.Data) == 0 {
+		logrus.Errorln("syncDevicesCodec fail", ssrc, "not found data", resp)
+		return
+	}
+	for _, data := range resp.Data {
+		if len(data.Tracks) == 0 {
+			logrus.Errorln("syncDevicesCodec fail", ssrc, "not found tracks", resp)
+		}
+
+		for _, track := range data.Tracks {
+			if track.Type == 0 {
+				// 视频
+				device := Devices{}
+				if err := dbClient.Get(deviceTB, M{"deviceid": deviceid}, &device); err == nil {
+					device.VF = transZLMDeviceVF(track.CodecID)
+					device.Height = track.Height
+					device.Width = track.Width
+					device.FPS = track.FPS
+					dbClient.Update(deviceTB, M{"deviceid": deviceid}, M{"$set": device})
+					go notify(notifyDeviceActive(device))
+				} else {
+					logrus.Errorln("syncDevicesCodec deviceid not found,deviceid:", deviceid)
+				}
+			}
+		}
+	}
 }
 
 // 从请求中解析出设备信息
@@ -122,6 +168,7 @@ func parserDevicesFromReqeust(req *sip.Request) (NVRDevices, bool) {
 	u.TransPort = via.Transport
 	u.URIStr = header.Address.String()
 	u.addr = sip.NewAddressFromFromHeader(header)
+	u.Source = req.Source().String()
 	u.source = req.Source()
 	return u, true
 }
@@ -210,11 +257,11 @@ func sipMessageCatalog(u NVRDevices, body string) error {
 		device := Devices{}
 		for _, d := range message.Item {
 			if err := dbClient.Get(deviceTB, M{"deviceid": d.DeviceID, "pdid": message.DeviceID}, &device); err == nil {
-				device.PDID = message.DeviceID
-				device.Active = time.Now().Unix()
-				device.URIStr = fmt.Sprintf("sip:%s@%s", d.DeviceID, _sysinfo.Region)
-				device.Status = transDeviceStatus(d.Status)
-				dbClient.Update(deviceTB, M{"deviceid": d.DeviceID, "pdid": message.DeviceID}, M{"$set": device})
+				d.PDID = device.PDID
+				d.Active = time.Now().Unix()
+				d.URIStr = fmt.Sprintf("sip:%s@%s", d.DeviceID, _sysinfo.Region)
+				d.Status = transDeviceStatus(d.Status)
+				dbClient.Update(deviceTB, M{"deviceid": d.DeviceID, "pdid": device.PDID}, M{"$set": d})
 				go notify(notifyDeviceActive(device))
 			} else {
 				logrus.Infoln("deviceid not found,deviceid:", d.DeviceID, "pdid:", message.DeviceID, "err", err)

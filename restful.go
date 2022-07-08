@@ -622,6 +622,8 @@ func apiWebHooks(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 					params := d.(playParams)
 					params.stream = true
 					_playList.ssrcResponse.Store(params.SSRC, params)
+					// 接收到流注册后进行视频流编码分析，分析出此设备对应的编码格式并保存或更新
+					syncDevicesCodec(ssrc, params.DeviceID)
 				} else {
 					// ssrc不存在，关闭流
 					sipStopPlay(ssrc)

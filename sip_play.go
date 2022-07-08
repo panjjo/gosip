@@ -30,7 +30,7 @@ type playParams struct {
 
 // sip 请求播放
 func sipPlay(data playParams) interface{} {
-	succ := map[string]interface{}{}
+	var succ map[string]interface{}
 	switch data.streamType {
 	case streamTypeProxy:
 		_, err := zlmAddStreamProxy(data.Url, data.DeviceID)

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/panjjo/gosip/utils"
@@ -32,10 +33,11 @@ func notify(data *Notify) {
 		if err != nil {
 			logrus.Warningln(data.Method, "send notify fail.", err)
 		}
-		if string(res) != "ok" {
+		if strings.ToUpper(string(res)) != "OK" {
 			logrus.Warningln(data.Method, "send notify resp fail.", string(res), "len:", len(res), config.Notify, data)
+		} else {
+			logrus.Debug("notify send succ:", data.Method, data.Data)
 		}
-		logrus.Debug("notify send succ:", data.Method, data.Data)
 	} else {
 		logrus.Traceln("notify config not found", data.Method)
 	}
