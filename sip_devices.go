@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/xml"
 	"fmt"
 	"net"
 	"time"
@@ -222,7 +223,7 @@ type MessageDeviceInfoResponse struct {
 	Firmware     string `xml:"Firmware"`
 }
 
-func sipMessageDeviceInfo(u NVRDevices, body string) error {
+func sipMessageDeviceInfo(u NVRDevices, body []byte) error {
 	message := &MessageDeviceInfoResponse{}
 	if err := utils.XMLDecode([]byte(body), message); err != nil {
 		logrus.Errorln("sipMessageDeviceInfo Unmarshal xml err:", err, "body:", body)
@@ -240,6 +241,7 @@ func sipMessageDeviceInfo(u NVRDevices, body string) error {
 
 // MessageDeviceListResponse 设备明细列表返回结构
 type MessageDeviceListResponse struct {
+	XMLName  xml.Name  `xml:"Response"`
 	CmdType  string    `xml:"CmdType"`
 	SN       int       `xml:"SN"`
 	DeviceID string    `xml:"DeviceID"`
@@ -247,10 +249,10 @@ type MessageDeviceListResponse struct {
 	Item     []Devices `xml:"DeviceList>Item"`
 }
 
-func sipMessageCatalog(u NVRDevices, body string) error {
+func sipMessageCatalog(u NVRDevices, body []byte) error {
 	message := &MessageDeviceListResponse{}
-	if err := utils.XMLDecode([]byte(body), message); err != nil {
-		logrus.Errorln("Message Unmarshal xml err:", err, "body:", body)
+	if err := utils.XMLDecode(body, message); err != nil {
+		logrus.Errorln("Message Unmarshal xml err:", err, "body:", string(body))
 		return err
 	}
 	if message.SumNum > 0 {

@@ -44,22 +44,22 @@ func (p *Packet) bodyLength() int {
 	return p.bodylength
 }
 
-func (p *Packet) getBody() (string, error) {
+func (p *Packet) getBody() ([]byte, error) {
 	if p.bodyLength() < 1 {
-		return "", nil
+		return []byte{}, nil
 	}
 	body := make([]byte, p.bodylength)
 	if p.bodylength > 0 {
 		n, err := io.ReadFull(p.reader, body)
 		if err != nil {
-			return "", err
+			return []byte{}, err
 		}
 		if n != p.bodylength {
 			logrus.Warningf("body length err,%d!=%d,body:%s", n, p.bodylength, string(body))
-			return string(body[:n]), nil
+			return body[:n], nil
 		}
 	}
-	return string(body), nil
+	return body, nil
 }
 
 // Connection Wrapper around net.Conn.

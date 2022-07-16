@@ -155,6 +155,6 @@ func (s *Server) Request(req *Request) (*Transaction, error) {
 }
 
 func handlerMethodNotAllowed(req *Request, tx *Transaction) {
-	resp := NewResponseFromRequest("", req, http.StatusMethodNotAllowed, http.StatusText(http.StatusMethodNotAllowed), "")
+	resp := NewResponseFromRequest("", req, http.StatusMethodNotAllowed, http.StatusText(http.StatusMethodNotAllowed), []byte{})
 	tx.Respond(resp)
 }

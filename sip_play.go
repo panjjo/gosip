@@ -171,7 +171,7 @@ func sipPlayPush(data playParams, device Devices, user NVRDevices) (playParams, 
 	hb := sip.NewHeaderBuilder().SetTo(device.addr).SetFrom(_serverDevices.addr).AddVia(&sip.ViaHop{
 		Params: sip.NewParams().Add("branch", sip.String{Str: sip.GenerateBranch()}),
 	}).SetContentType(&sip.ContentTypeSDP).SetMethod(sip.INVITE).SetContact(_serverDevices.addr)
-	req := sip.NewRequest("", sip.INVITE, user.addr.URI, sip.DefaultSipVersion, hb.Build(), string(b))
+	req := sip.NewRequest("", sip.INVITE, user.addr.URI, sip.DefaultSipVersion, hb.Build(), b)
 	req.SetDestination(user.source)
 	req.AppendHeader(&sip.GenericHeader{HeaderName: "Subject", Contents: fmt.Sprintf("%s:%s,%s:%s", device.DeviceID, data.SSRC, _serverDevices.DeviceID, data.SSRC)})
 	req.SetRecipient(device.addr.URI)

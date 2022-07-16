@@ -54,9 +54,9 @@ type Message interface {
 	RemoveHeader(name string)
 
 	// Body returns message body.
-	Body() string
+	Body() []byte
 	// SetBody sets message body.
-	SetBody(body string, setContentLength bool)
+	SetBody(body []byte, setContentLength bool)
 
 	/* Helper getters for common headers */
 	// CallID returns 'Call-ID' header.
@@ -90,7 +90,7 @@ type message struct {
 	*headers
 	messID       MessageID
 	sipVersion   string
-	body         string
+	body         []byte
 	source, dest net.Addr
 	startLine    func() string
 }
@@ -113,7 +113,8 @@ func (msg *message) String() string {
 	// Write the headers.
 	buffer.WriteString(msg.headers.String())
 	// message body
-	buffer.WriteString("\r\n" + msg.Body())
+	buffer.WriteString("\r\n")
+	buffer.Write(msg.Body())
 
 	return buffer.String()
 }
@@ -129,12 +130,12 @@ func (msg *message) SetSipVersion(version string) {
 }
 
 // Body Body
-func (msg *message) Body() string {
+func (msg *message) Body() []byte {
 	return msg.body
 }
 
 // SetBody sets message body, calculates it length and add 'Content-Length' header.
-func (msg *message) SetBody(body string, setContentLength bool) {
+func (msg *message) SetBody(body []byte, setContentLength bool) {
 	msg.body = body
 	if setContentLength {
 		hdrs := msg.GetHeaders("Content-Length")

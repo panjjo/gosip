@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"net"
-	"strings"
 
 	"github.com/gofrs/uuid"
 )
@@ -23,7 +22,7 @@ func NewRequest(
 	recipient *URI,
 	sipVersion string,
 	hdrs []Header,
-	body string,
+	body []byte,
 ) *Request {
 	req := new(Request)
 	if messID == "" {
@@ -37,7 +36,7 @@ func NewRequest(
 	req.SetMethod(method)
 	req.SetRecipient(recipient)
 
-	if strings.TrimSpace(body) != "" {
+	if len(body) != 0 {
 		req.SetBody(body, true)
 	}
 	return req
@@ -52,7 +51,7 @@ func NewRequestFromResponse(method RequestMethod, inviteResponse *Response) *Req
 		contact.Address,
 		inviteResponse.SipVersion(),
 		[]Header{},
-		"",
+		[]byte{},
 	)
 
 	CopyHeaders("Via", inviteResponse, ackRequest)

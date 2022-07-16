@@ -13,11 +13,12 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/html/charset"
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
 )
 
 // Error Error
@@ -161,7 +162,7 @@ func GetMD5(str string) string {
 
 // XMLDecode XMLDecode
 func XMLDecode(data []byte, v interface{}) error {
-	decoder := xml.NewDecoder(bytes.NewReader([]byte(data)))
+	decoder := xml.NewDecoder(bytes.NewReader(data))
 	decoder.CharsetReader = charset.NewReaderLabel
 	return decoder.Decode(v)
 }
@@ -172,20 +173,6 @@ func Max(a, b int64) int64 {
 		return a
 	}
 	return b
-}
-
-func ssrc2stream(ssrc string) string {
-	if ssrc[0:1] == "0" {
-		ssrc = ssrc[1:]
-	}
-	num, _ := strconv.Atoi(ssrc)
-	return fmt.Sprintf("%X", num)
-}
-
-func sec2str(layout string, sec int64) string {
-	t := time.Unix(sec, 0)
-	nt := t.Format(layout)
-	return nt
 }
 
 // ResolveSelfIP ResolveSelfIP
@@ -224,4 +211,24 @@ func ResolveSelfIP() (net.IP, error) {
 		}
 	}
 	return nil, errors.New("server not connected to any network")
+}
+
+// GBK 转 UTF-8
+func GbkToUtf8(s []byte) ([]byte, error) {
+	reader := transform.NewReader(bytes.NewReader(s), simplifiedchinese.GBK.NewDecoder())
+	d, e := ioutil.ReadAll(reader)
+	if e != nil {
+		return nil, e
+	}
+	return d, nil
+}
+
+// UTF-8 转 GBK
+func Utf8ToGbk(s []byte) ([]byte, error) {
+	reader := transform.NewReader(bytes.NewReader(s), simplifiedchinese.GBK.NewEncoder())
+	d, e := ioutil.ReadAll(reader)
+	if e != nil {
+		return nil, e
+	}
+	return d, nil
 }

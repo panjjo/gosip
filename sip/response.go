@@ -3,7 +3,6 @@ package sip
 import (
 	"bytes"
 	"fmt"
-	"strings"
 
 	"github.com/gofrs/uuid"
 )
@@ -21,7 +20,7 @@ func NewResponseFromRequest(
 	req *Request,
 	statusCode int,
 	reason string,
-	body string,
+	body []byte,
 ) *Response {
 	res := NewResponse(
 		resID,
@@ -29,7 +28,7 @@ func NewResponseFromRequest(
 		statusCode,
 		reason,
 		[]Header{},
-		"",
+		[]byte{},
 	)
 
 	CopyHeaders("Record-Route", req, res)
@@ -60,7 +59,7 @@ func NewResponse(
 	statusCode int,
 	reason string,
 	hdrs []Header,
-	body string,
+	body []byte,
 ) *Response {
 	res := new(Response)
 	if messID == "" {
@@ -74,7 +73,7 @@ func NewResponse(
 	res.SetStatusCode(statusCode)
 	res.SetReason(reason)
 
-	if strings.TrimSpace(body) != "" {
+	if len(body) != 0 {
 		res.SetBody(body, true)
 	}
 

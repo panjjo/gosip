@@ -16,10 +16,10 @@ type MessageNotify struct {
 	Info     string `xml:"Info"`
 }
 
-func sipMessageKeepalive(u NVRDevices, body string) error {
+func sipMessageKeepalive(u NVRDevices, body []byte) error {
 	message := &MessageNotify{}
-	if err := utils.XMLDecode([]byte(body), message); err != nil {
-		logrus.Errorln("Message Unmarshal xml err:", err, "body:", body)
+	if err := utils.XMLDecode(body, message); err != nil {
+		logrus.Errorln("Message Unmarshal xml err:", err, "body:", string(body))
 		return err
 	}
 	update := M{"host": u.Host, "port": u.Port, "report": u.Rport, "raddr": u.RAddr, "source": u.Source}

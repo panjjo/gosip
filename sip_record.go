@@ -67,10 +67,10 @@ type recordList struct {
 // 当前获取目录文件设备集合
 var _recordList *sync.Map
 
-func sipMessageRecordInfo(u NVRDevices, body string) error {
+func sipMessageRecordInfo(u NVRDevices, body []byte) error {
 	message := &MessageRecordInfoResponse{}
-	if err := utils.XMLDecode([]byte(body), message); err != nil {
-		logrus.Errorln("Message Unmarshal xml err:", err, "body:", body)
+	if err := utils.XMLDecode(body, message); err != nil {
+		logrus.Errorln("Message Unmarshal xml err:", err, "body:", string(body))
 		return err
 	}
 	if list, ok := _recordList.Load(message.DeviceID); ok {

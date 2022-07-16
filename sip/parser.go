@@ -586,14 +586,14 @@ func (p *parser) start() {
 		if isRequest(startLine) {
 			method, recipient, sipVersion, err := ParseRequestLine(startLine)
 			if err == nil {
-				msg = NewRequest("", method, recipient, sipVersion, []Header{}, "")
+				msg = NewRequest("", method, recipient, sipVersion, []Header{}, []byte{})
 			} else {
 				termErr = utils.NewError(err, "parserMessage", "ParseRequestLine", startLine)
 			}
 		} else if isResponse(startLine) {
 			sipVersion, statusCode, reason, err := ParseStatusLine(startLine)
 			if err == nil {
-				msg = NewResponse("", sipVersion, statusCode, reason, []Header{}, "")
+				msg = NewResponse("", sipVersion, statusCode, reason, []Header{}, []byte{})
 			} else {
 				termErr = utils.NewError(err, "parserMessage", "ParseStatusLine", startLine)
 			}
@@ -652,7 +652,7 @@ func (p *parser) start() {
 			logrus.Errorln("readbody error:", err)
 			continue
 		}
-		if strings.TrimSpace(body) != "" {
+		if len(body) != 0 {
 			msg.SetBody(body, false)
 		}
 		msg.SetSource(packet.raddr)
