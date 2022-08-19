@@ -6,7 +6,6 @@ import (
 	"io"
 	"net"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/panjjo/gosip/utils"
@@ -76,8 +75,8 @@ type connection struct {
 	baseConn net.Conn
 	laddr    net.Addr
 	raddr    net.Addr
-	mu       sync.RWMutex
-	logKey   string
+	// mu       sync.RWMutex
+	logKey string
 }
 
 func newUDPConnection(baseConn net.Conn) Connection {

@@ -67,9 +67,7 @@ func (hb *HeadersBuilder) Build() []Header {
 	// }
 	if len(hb.via) != 0 {
 		via := make(ViaHeader, 0)
-		for _, viaHop := range hb.via {
-			via = append(via, viaHop)
-		}
+		via = append(via, hb.via...)
 		hdrs = append(hdrs, via)
 	}
 
@@ -567,7 +565,7 @@ func (params *headerParams) ToString(sep uint8) string {
 		}
 		first = false
 
-		buffer.WriteString(fmt.Sprintf("%s", key))
+		buffer.WriteString(key)
 
 		if val, ok := val.(String); ok {
 			if strings.ContainsAny(val.String(), abnfWs) {

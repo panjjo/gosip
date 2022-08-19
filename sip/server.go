@@ -40,9 +40,9 @@ func NewServer() *Server {
 	return srv
 }
 
-func (s *Server) newTX(key string) *Transaction {
-	return s.txs.newTX(key, s.conn)
-}
+// func (s *Server) newTX(key string) *Transaction {
+// 	return s.txs.newTX(key, s.conn)
+// }
 func (s *Server) getTX(key string) *Transaction {
 	return s.txs.getTX(key)
 }
@@ -98,13 +98,13 @@ func (s *Server) handlerListen(msgs chan Message) {
 	var msg Message
 	for {
 		msg = <-msgs
-		switch msg.(type) {
+		switch tmsg := msg.(type) {
 		case *Request:
-			req := msg.(*Request)
+			req := tmsg
 			req.SetDestination(s.udpaddr)
 			s.handlerRequest(req)
 		case *Response:
-			resp := msg.(*Response)
+			resp := tmsg
 			resp.SetDestination(s.udpaddr)
 			s.handlerResponse(resp)
 		}
@@ -127,10 +127,10 @@ func (s *Server) handlerRequest(msg *Request) {
 
 func (s *Server) handlerResponse(msg *Response) {
 	tx := s.getTX(getTXKey(msg))
-	logrus.Traceln("receive response from:", msg.Source(), "txKey:", tx.key, "message: \n", msg.String())
 	if tx == nil {
 		logrus.Infoln("not found tx. receive response from:", msg.Source(), "message: \n", msg.String())
 	} else {
+		logrus.Traceln("receive response from:", msg.Source(), "txKey:", tx.key, "message: \n", msg.String())
 		tx.receiveResponse(msg)
 	}
 }

@@ -1,7 +1,6 @@
 package sip
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"strconv"
@@ -577,6 +576,7 @@ func (p *parser) start() {
 	var packet Packet
 
 	for !p.isStop {
+		termErr = nil
 		packet = <-p.in
 		startLine, err := packet.nextLine()
 		if err != nil {
@@ -660,9 +660,9 @@ func (p *parser) start() {
 	}
 }
 
-func getStartLine(data []byte) (string, error) {
-	return bufio.NewReader(bytes.NewBuffer(data)).ReadString('\r')
-}
+// func getStartLine(data []byte) (string, error) {
+// 	return bufio.NewReader(bytes.NewBuffer(data)).ReadString('\r')
+// }
 
 // Calculate the size of a SIP message's body, given the entire contents of the message as a byte array.
 func getBodyLength(data []byte) int {
