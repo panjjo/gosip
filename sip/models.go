@@ -80,18 +80,18 @@ var ContentTypeXML = ContentType("Application/MANSCDP+xml")
 
 var (
 	// CatalogXML 获取设备列表xml样式
-	CatalogXML = `<?xml version="1.0"?>
+	CatalogXML = `<?xml version="1.0" encoding="GB2312"?>
 <Query>
 <CmdType>Catalog</CmdType>
-<SN>17430</SN>
+<SN>%d</SN>
 <DeviceID>%s</DeviceID>
 </Query>
-	`
+`
 	// RecordInfoXML 获取录像文件列表xml样式
-	RecordInfoXML = `<?xml version="1.0"?>
+	RecordInfoXML = `<?xml version="1.0" encoding="GB2312"?>
 <Query>
 <CmdType>RecordInfo</CmdType>
-<SN>17430</SN>
+<SN>%d</SN>
 <DeviceID>%s</DeviceID>
 <StartTime>%s</StartTime>
 <EndTime>%s</EndTime>
@@ -100,10 +100,10 @@ var (
 </Query>
 `
 	// DeviceInfoXML 查询设备详情xml样式
-	DeviceInfoXML = `<?xml version="1.0"?>
+	DeviceInfoXML = `<?xml version="1.0" encoding="GB2312"?>
 <Query>
 <CmdType>DeviceInfo</CmdType>
-<SN>17430</SN>
+<SN>%d</SN>
 <DeviceID>%s</DeviceID>
 </Query>
 `
@@ -111,17 +111,17 @@ var (
 
 // GetDeviceInfoXML 获取设备详情指令
 func GetDeviceInfoXML(id string) []byte {
-	return []byte(fmt.Sprintf(DeviceInfoXML, id))
+	return []byte(fmt.Sprintf(DeviceInfoXML, utils.RandInt(100000, 999999), id))
 }
 
 // GetCatalogXML 获取NVR下设备列表指令
 func GetCatalogXML(id string) []byte {
-	return []byte(fmt.Sprintf(CatalogXML, id))
+	return []byte(fmt.Sprintf(CatalogXML, utils.RandInt(100000, 999999), id))
 }
 
 // GetRecordInfoXML 获取录像文件列表指令
 func GetRecordInfoXML(id string, start, end int64) []byte {
-	return []byte(fmt.Sprintf(RecordInfoXML, id, time.Unix(start, 0).Format("2006-01-02T15:04:05"), time.Unix(end, 0).Format("2006-01-02T15:04:05")))
+	return []byte(fmt.Sprintf(RecordInfoXML, utils.RandInt(100000, 999999), id, time.Unix(start, 0).Format("2006-01-02T15:04:05"), time.Unix(end, 0).Format("2006-01-02T15:04:05")))
 }
 
 //RFC3261BranchMagicCookie RFC3261BranchMagicCookie

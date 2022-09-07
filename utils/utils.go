@@ -57,16 +57,24 @@ func JSONDecode(data []byte, obj interface{}) error {
 	return json.Unmarshal(data, obj)
 }
 
+func RandInt(min, max int) int {
+	if max < min {
+		return 0
+	}
+	max++
+	max -= min
+	rand.Seed(time.Now().UnixNano())
+	r := rand.Int()
+	return r%max + min
+}
+
 const (
 	letterBytes = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 )
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
 // RandString https://github.com/kpbird/golang_random_string
 func RandString(n int) string {
+	rand.Seed(time.Now().UnixNano())
 	output := make([]byte, n)
 	// We will take n bytes, one byte for each character of output.
 	randomness := make([]byte, n)

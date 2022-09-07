@@ -119,6 +119,10 @@ func (hb *HeadersBuilder) SetFrom(address *Address) *HeadersBuilder {
 	if address.URI.Host() == "" {
 		address.URI.SetHost(hb.host)
 	}
+	if _, ok := address.Params.Get("tag"); !ok {
+		address.Params.Add("tag", String{Str: utils.RandString(32)})
+
+	}
 
 	hb.from = &FromHeader{
 		DisplayName: address.DisplayName,
@@ -135,11 +139,10 @@ func (hb *HeadersBuilder) SetTo(address *Address) *HeadersBuilder {
 	if address.URI.Host() == "" {
 		address.URI.SetHost(hb.host)
 	}
-
 	hb.to = &ToHeader{
 		DisplayName: address.DisplayName,
 		Address:     address.URI,
-		Params:      address.Params,
+		// Params:      address.Params,
 	}
 	return hb
 }
