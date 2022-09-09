@@ -50,8 +50,8 @@ func (p *Packet) getBody() ([]byte, error) {
 	body := make([]byte, p.bodylength)
 	if p.bodylength > 0 {
 		n, err := io.ReadFull(p.reader, body)
-		if err != nil {
-			return []byte{}, err
+		if err != nil && err != io.ErrUnexpectedEOF {
+			return body, err
 		}
 		if n != p.bodylength {
 			logrus.Warningf("body length err,%d!=%d,body:%s", n, p.bodylength, string(body))

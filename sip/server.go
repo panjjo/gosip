@@ -84,7 +84,7 @@ func (s *Server) ListenUDPServer(addr string) {
 			logrus.Errorln("udp.ReadFromUDP err", err)
 			continue
 		}
-		parser.in <- newPacket(buf[:num], raddr)
+		parser.in <- newPacket(append([]byte{}, buf[:num]...), raddr)
 	}
 }
 
@@ -107,6 +107,8 @@ func (s *Server) handlerListen(msgs chan Message) {
 			resp := tmsg
 			resp.SetDestination(s.udpaddr)
 			s.handlerResponse(resp)
+		default:
+			logrus.Errorln("undefind msg type,", tmsg, msg.String())
 		}
 	}
 }

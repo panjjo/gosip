@@ -597,6 +597,9 @@ func (p *parser) start() {
 			} else {
 				termErr = utils.NewError(err, "parserMessage", "ParseStatusLine", startLine)
 			}
+		} else {
+			logrus.Errorln("undefind startlint type", startLine)
+			continue
 		}
 		if termErr != nil {
 			logrus.Errorln(err)
@@ -645,11 +648,13 @@ func (p *parser) start() {
 			msg.AppendHeader(header)
 		}
 		if length, ok := msg.ContentLength(); ok {
-			packet.bodylength = int(*length)
+			if int(*length) > packet.bodylength {
+				packet.bodylength = int(*length)
+			}
 		}
 		body, err := packet.getBody()
 		if err != nil {
-			logrus.Errorln("readbody error:", err)
+			logrus.Errorln("readbody error:", err, "want size:", packet.bodylength, "body:", len(body), string(body))
 			continue
 		}
 		if len(body) != 0 {

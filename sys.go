@@ -116,7 +116,7 @@ func ssrc2stream(ssrc string) string {
 		ssrc = ssrc[1:]
 	}
 	num, _ := strconv.Atoi(ssrc)
-	return fmt.Sprintf("%X", num)
+	return fmt.Sprintf("%08X", num)
 }
 
 func sipResponse(tx *sip.Transaction) (*sip.Response, error) {
