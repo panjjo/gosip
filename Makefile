@@ -1,7 +1,7 @@
 REGISTRY:=docker.io
 GROUP:=panjjo
 PROJECT:=sipserver
-TAG:=1.0.5
+TAG:=1.0.6
 
 all: build docker push
 

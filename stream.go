@@ -28,6 +28,7 @@ type DeviceStream struct {
 	CallID     string            // header callid
 	Time       string
 	Stop       bool
+	SeqNo      uint32 `bson:"seqno"`
 }
 
 type playList struct {
@@ -113,11 +114,11 @@ func checkStream() {
 				_serverDevices.addr.Params.Add(k, sip.String{Str: v})
 			}
 			callid := sip.CallID(stream.CallID)
-
+			stream.SeqNo++
 			_serverDevices.addr.Params.Add("tag", sip.String{Str: utils.RandString(20)})
 			hb := sip.NewHeaderBuilder().SetTo(device.addr).SetFrom(_serverDevices.addr).AddVia(&sip.ViaHop{
 				Params: sip.NewParams().Add("branch", sip.String{Str: sip.GenerateBranch()}),
-			}).SetContentType(&sip.ContentTypeSDP).SetMethod(sip.BYE).SetContact(_serverDevices.addr).SetCallID(&callid)
+			}).SetContentType(&sip.ContentTypeSDP).SetMethod(sip.BYE).SetContact(_serverDevices.addr).SetCallID(&callid).SetSeqNo(uint(stream.SeqNo))
 			req := sip.NewRequest("", sip.BYE, user.addr.URI, sip.DefaultSipVersion, hb.Build(), nil)
 			req.SetDestination(user.source)
 			req.SetRecipient(device.addr.URI)
@@ -140,7 +141,7 @@ func checkStream() {
 			if response.StatusCode() != http.StatusOK {
 				if response.StatusCode() == 481 {
 					logrus.Infoln("checkStreamClosedFail1", stream.SSRC, response.StatusCode())
-					dbClient.Update(streamTB, M{"ssrc": stream.SSRC, "stop": false}, M{"$set": M{"err": response.Reason(), "status": 1}})
+					dbClient.Update(streamTB, M{"ssrc": stream.SSRC, "stop": true}, M{"$set": M{"err": response.Reason(), "status": 1}})
 				} else {
 					logrus.Warningln("checkStreamClosedFail1", stream.SSRC, response.StatusCode())
 					dbClient.Update(streamTB, M{"ssrc": stream.SSRC, "stop": false}, M{"$set": M{"err": response.Reason()}})

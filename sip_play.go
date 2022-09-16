@@ -198,11 +198,16 @@ func sipPlayPush(data playParams, device Devices, user NVRDevices) (playParams, 
 	for k, v := range to.Params.Items() {
 		toParams[k] = v.String()
 	}
+	var cseqNo uint32
+	cseq, _ := response.CSeq()
+	if cseq != nil {
+		cseqNo = cseq.SeqNo
+	}
 	fromParams := map[string]string{}
 	for k, v := range from.Params.Items() {
 		fromParams[k] = v.String()
 	}
-	dbClient.Update(streamTB, M{"ssrc": data.SSRC, "stop": false}, M{"$set": M{"callid": callid, "ttag": toParams, "ftag": fromParams, "status": 0}})
+	dbClient.Update(streamTB, M{"ssrc": data.SSRC, "stop": false}, M{"$set": M{"callid": callid, "ttag": toParams, "ftag": fromParams, "status": 0, "seqno": cseqNo}})
 	return data, err
 }
 
