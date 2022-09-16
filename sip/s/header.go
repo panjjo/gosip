@@ -147,6 +147,20 @@ func (hb *HeadersBuilder) SetTo(address *Address) *HeadersBuilder {
 	return hb
 }
 
+// SetTo ToHeader
+func (hb *HeadersBuilder) SetToWithParam(address *Address) *HeadersBuilder {
+	address = address.Clone()
+	if address.URI.Host() == "" {
+		address.URI.SetHost(hb.host)
+	}
+	hb.to = &ToHeader{
+		DisplayName: address.DisplayName,
+		Address:     address.URI,
+		Params:      address.Params,
+	}
+	return hb
+}
+
 // SetContact SetContact
 func (hb *HeadersBuilder) SetContact(address *Address) *HeadersBuilder {
 	address = address.Clone()

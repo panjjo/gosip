@@ -1,4 +1,4 @@
-package main
+package sipapi
 
 import (
 	"fmt"
@@ -11,12 +11,12 @@ import (
 )
 
 const (
-	// NotifyMethodUserActive 用户活跃状态通知
-	NotifyMethodUserActive = "users.active"
-	// NotifyMethodUserRegister 用户注册通知
-	NotifyMethodUserRegister = "users.regiester"
-	// NotifyMethodDeviceActive 设备活跃通知
-	NotifyMethodDeviceActive = "devices.active"
+	// NotifyMethodUserActive 设备活跃状态通知
+	NotifyMethodDevicesActive = "devices.active"
+	// NotifyMethodUserRegister 设备注册通知
+	NotifyMethodDevicesRegister = "devices.regiester"
+	// NotifyMethodDeviceActive 通道活跃通知
+	NotifyMethodChannelsActive = "channels.active"
 	// NotifyMethodRecordStop 视频录制结束
 	NotifyMethodRecordStop = "records.stop"
 )
@@ -28,7 +28,7 @@ type Notify struct {
 }
 
 func notify(data *Notify) {
-	if url, ok := config.notifyMap[data.Method]; ok {
+	if url, ok := config.NotifyMap[data.Method]; ok {
 		res, err := utils.PostJSONRequest(url, data)
 		if err != nil {
 			logrus.Warningln(data.Method, "send notify fail.", err)
@@ -43,9 +43,9 @@ func notify(data *Notify) {
 	}
 }
 
-func notifyUserAcitve(id, status string) *Notify {
+func notifyDevicesAcitve(id, status string) *Notify {
 	return &Notify{
-		Method: NotifyMethodUserActive,
+		Method: NotifyMethodDevicesActive,
 		Data: map[string]interface{}{
 			"deviceid": id,
 			"status":   status,
@@ -53,21 +53,21 @@ func notifyUserAcitve(id, status string) *Notify {
 		},
 	}
 }
-func notifyUserRegister(u NVRDevices) *Notify {
-	u.Sys = _sysinfo
+func notifyDevicesRegister(u Devices) *Notify {
+	u.Sys = *config.GB28181
 	return &Notify{
-		Method: NotifyMethodUserRegister,
+		Method: NotifyMethodDevicesRegister,
 		Data:   u,
 	}
 }
 
-func notifyDeviceActive(d Devices) *Notify {
+func notifyChannelsActive(d Channels) *Notify {
 	return &Notify{
-		Method: NotifyMethodDeviceActive,
+		Method: NotifyMethodChannelsActive,
 		Data: map[string]interface{}{
-			"deviceid": d.DeviceID,
-			"status":   d.Status,
-			"time":     time.Now().Unix(),
+			"channelid": d.ChannelID,
+			"status":    d.Status,
+			"time":      time.Now().Unix(),
 		},
 	}
 }

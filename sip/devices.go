@@ -1,4 +1,4 @@
-package main
+package sipapi
 
 import (
 	"encoding/xml"
@@ -6,66 +6,75 @@ import (
 	"net"
 	"time"
 
-	"github.com/panjjo/gosip/sip"
+	"github.com/panjjo/gosip/db"
+	"github.com/panjjo/gosip/m"
+	sip "github.com/panjjo/gosip/sip/s"
 	"github.com/panjjo/gosip/utils"
 	"github.com/sirupsen/logrus"
 )
 
-const userTB = "users"     // 用户表 NVR表
-const deviceTB = "devices" // 设备表 摄像头
+var (
+	// sip服务用户信息
+	_serverDevices Devices
+	srv            *sip.Server
+)
 
-// NVRDevices NVR  设备信息
-type NVRDevices struct {
-	DBModel
+// Devices NVR  设备信息
+type Devices struct {
+	db.DBModel
 	// Name 设备名称
-	Name string `json:"name" bson:"name"`
+	Name string `json:"name"`
 	// DeviceID 设备id
-	DeviceID string `json:"deviceid" bson:"deviceid"`
+	DeviceID string `json:"deviceid" gorm:"primaryKey;autoIncrement:false"`
 	// Region 设备域
-	Region string `json:"region" bson:"region"`
+	Region string `json:"region" `
 	// Host Via 地址
-	Host string `json:"host" bson:"host"`
+	Host string `json:"host"`
 	// Port via 端口
-	Port string `json:"port" bson:"port"`
+	Port string `json:"port" `
 	// TransPort via transport
-	TransPort string `json:"transport" bson:"transport"`
+	TransPort string `json:"transport"`
 	// Proto 协议
-	Proto string `json:"proto" bson:"proto"`
+	Proto string `json:"proto"`
 	// Rport via rport
-	Rport string `json:"report" bson:"report"`
+	Rport string `json:"report"`
 	// RAddr via recevied
-	RAddr string `json:"raddr" bson:"raddr"`
+	RAddr string `json:"raddr" `
 	// Manufacturer 制造厂商
-	Manufacturer string `xml:"Manufacturer" bson:"manufacturer" json:"manufacturer"`
+	Manufacturer string `xml:"Manufacturer"  json:"manufacturer"`
 	// 设备类型DVR，NVR
-	DeviceType string `xml:"DeviceType" bson:"devicetype" json:"devicetype"`
+	DeviceType string `xml:"DeviceType"  json:"devicetype"`
 	// Firmware 固件版本
-	Firmware string `bson:"firmware" json:"firmware"`
+	Firmware string ` json:"firmware"`
 	// Model 型号
-	Model  string `bson:"model" json:"model"`
-	URIStr string `json:"uri" bson:"uri"`
+	Model  string `json:"model"`
+	URIStr string `json:"uri" `
 	// ActiveAt 最后心跳检测时间
-	ActiveAt int64 `json:"active" bson:"active"`
+	ActiveAt int64 `json:"active"`
 	// Regist 是否注册
-	Regist bool `json:"regist" bson:"regist"`
+	Regist bool `json:"regist" `
 	// PWD 密码
-	PWD string `json:"pwd" bson:"pwd"`
+	PWD string `json:"pwd"`
 	// Source
-	Source string `json:"source" bson:"source"`
+	Source string `json:"source" `
 
-	Sys sysInfo `json:"sysinfo" bson:"-"`
+	Sys m.SysInfo `json:"sysinfo" gorm:"-"`
 
 	//----
-	addr   *sip.Address
-	source net.Addr
+	addr   *sip.Address `gorm:"-"`
+	source net.Addr     `gorm:"-"`
 }
 
-// Devices 摄像头信息
-type Devices struct {
-	DBModel
+// Channels 摄像头通道信息
+type Channels struct {
+	db.DBModel
+	// ChannelID 通道编码
+	ChannelID string `xml:"DeviceID" json:"channelid" gorm:"primaryKey;autoIncrement:false"`
 	// DeviceID 设备编号
-	DeviceID string `xml:"DeviceID" bson:"deviceid" json:"deviceid"`
-	// Name 设备名称
+	DeviceID string `xml:"-" json:"deviceid"`
+	// Memo 备注（用来标示通道信息）
+	MeMo string `json:"memo"`
+	// Name 通道名称（摄像头设置名称）
 	Name         string `xml:"Name" bson:"name" json:"name"`
 	Manufacturer string `xml:"Manufacturer" bson:"manufacturer" json:"manufacturer"`
 	Model        string `xml:"Model" bson:"model" json:"model"`
@@ -79,8 +88,6 @@ type Devices struct {
 	Secrecy     int    `xml:"Secrecy" bson:"secrecy" json:"secrecy"`
 	// Status 状态  on 在线
 	Status string `xml:"Status" bson:"status" json:"status"`
-	// PDID 所属用户id
-	PDID string `bson:"pdid" json:"pdid"`
 	// Active 最后活跃时间
 	Active int64  `bson:"active" json:"active"`
 	URIStr string `bson:"uri" json:"uri"`
@@ -94,11 +101,11 @@ type Devices struct {
 	// 视频FPS
 	FPS int `json:"fps"`
 
-	addr *sip.Address `bson:"-"`
+	addr *sip.Address `gorm:"-"`
 }
 
 // 同步摄像头编码格式
-func syncDevicesCodec(ssrc, deviceid string) {
+func SyncDevicesCodec(ssrc, deviceid string) {
 	resp := zlmGetMediaList(zlmGetMediaListReq{streamID: ssrc})
 	if resp.Code != 0 {
 		logrus.Errorln("syncDevicesCodec fail", ssrc, resp)
@@ -116,14 +123,13 @@ func syncDevicesCodec(ssrc, deviceid string) {
 		for _, track := range data.Tracks {
 			if track.Type == 0 {
 				// 视频
-				device := Devices{}
-				if err := dbClient.Get(deviceTB, M{"deviceid": deviceid}, &device); err == nil {
+				device := Channels{DeviceID: deviceid}
+				if err := db.Get(db.DBClient, &device); err == nil {
 					device.VF = transZLMDeviceVF(track.CodecID)
 					device.Height = track.Height
 					device.Width = track.Width
 					device.FPS = track.FPS
-					dbClient.Update(deviceTB, M{"deviceid": deviceid}, M{"$set": device})
-					go notify(notifyDeviceActive(device))
+					db.Save(db.DBClient, &device)
 				} else {
 					logrus.Errorln("syncDevicesCodec deviceid not found,deviceid:", deviceid)
 				}
@@ -133,8 +139,8 @@ func syncDevicesCodec(ssrc, deviceid string) {
 }
 
 // 从请求中解析出设备信息
-func parserDevicesFromReqeust(req *sip.Request) (NVRDevices, bool) {
-	u := NVRDevices{}
+func parserDevicesFromReqeust(req *sip.Request) (Devices, bool) {
+	u := Devices{}
 	header, ok := req.From()
 	if !ok {
 		logrus.Warningln("not found from header from request", req.String())
@@ -175,7 +181,7 @@ func parserDevicesFromReqeust(req *sip.Request) (NVRDevices, bool) {
 }
 
 // 获取设备信息（注册设备）
-func sipDeviceInfo(to NVRDevices) {
+func sipDeviceInfo(to Devices) {
 	hb := sip.NewHeaderBuilder().SetTo(to.addr).SetFrom(_serverDevices.addr).AddVia(&sip.ViaHop{
 		Params: sip.NewParams().Add("branch", sip.String{Str: sip.GenerateBranch()}),
 	}).SetContentType(&sip.ContentTypeXML).SetMethod(sip.MESSAGE)
@@ -194,7 +200,7 @@ func sipDeviceInfo(to NVRDevices) {
 }
 
 // sipCatalog 获取注册设备包含的列表
-func sipCatalog(to NVRDevices) {
+func sipCatalog(to Devices) {
 	hb := sip.NewHeaderBuilder().SetTo(to.addr).SetFrom(_serverDevices.addr).AddVia(&sip.ViaHop{
 		Params: sip.NewParams().Add("branch", sip.String{Str: sip.GenerateBranch()}),
 	}).SetContentType(&sip.ContentTypeXML).SetMethod(sip.MESSAGE)
@@ -223,48 +229,49 @@ type MessageDeviceInfoResponse struct {
 	Firmware     string `xml:"Firmware"`
 }
 
-func sipMessageDeviceInfo(u NVRDevices, body []byte) error {
+func sipMessageDeviceInfo(u Devices, body []byte) error {
 	message := &MessageDeviceInfoResponse{}
 	if err := utils.XMLDecode([]byte(body), message); err != nil {
 		logrus.Errorln("sipMessageDeviceInfo Unmarshal xml err:", err, "body:", body)
 		return err
 	}
-	update := M{
-		"model":        message.Model,
-		"devicetype":   message.DeviceType,
-		"firmware":     message.Firmware,
-		"manufacturer": message.Manufacturer,
-	}
-	dbClient.Update(userTB, M{"deviceid": u.DeviceID}, M{"$set": update})
+	db.UpdateAll(db.DBClient, new(Devices), db.M{"device_id=?": u.DeviceID}, Devices{
+		Model:        message.Model,
+		DeviceType:   message.DeviceType,
+		Firmware:     message.Firmware,
+		Manufacturer: message.Manufacturer,
+	})
 	return nil
 }
 
 // MessageDeviceListResponse 设备明细列表返回结构
 type MessageDeviceListResponse struct {
-	XMLName  xml.Name  `xml:"Response"`
-	CmdType  string    `xml:"CmdType"`
-	SN       int       `xml:"SN"`
-	DeviceID string    `xml:"DeviceID"`
-	SumNum   int       `xml:"SumNum"`
-	Item     []Devices `xml:"DeviceList>Item"`
+	XMLName  xml.Name   `xml:"Response"`
+	CmdType  string     `xml:"CmdType"`
+	SN       int        `xml:"SN"`
+	DeviceID string     `xml:"DeviceID"`
+	SumNum   int        `xml:"SumNum"`
+	Item     []Channels `xml:"DeviceList>Item"`
 }
 
-func sipMessageCatalog(u NVRDevices, body []byte) error {
+func sipMessageCatalog(u Devices, body []byte) error {
 	message := &MessageDeviceListResponse{}
 	if err := utils.XMLDecode(body, message); err != nil {
 		logrus.Errorln("Message Unmarshal xml err:", err, "body:", string(body))
 		return err
 	}
 	if message.SumNum > 0 {
-		device := Devices{}
 		for _, d := range message.Item {
-			if err := dbClient.Get(deviceTB, M{"deviceid": d.DeviceID, "pdid": message.DeviceID}, &device); err == nil {
-				d.PDID = device.PDID
+			channel := Channels{ChannelID: d.ChannelID, DeviceID: message.DeviceID}
+			if err := db.Get(db.DBClient, &channel); err == nil {
+				d.DeviceID = channel.DeviceID
 				d.Active = time.Now().Unix()
-				d.URIStr = fmt.Sprintf("sip:%s@%s", d.DeviceID, _sysinfo.Region)
+				d.URIStr = fmt.Sprintf("sip:%s@%s", d.ChannelID, _sysinfo.Region)
 				d.Status = transDeviceStatus(d.Status)
-				dbClient.Update(deviceTB, M{"deviceid": d.DeviceID, "pdid": device.PDID}, M{"$set": d})
-				go notify(notifyDeviceActive(device))
+				d.ID = channel.ID
+				d.MeMo = channel.MeMo
+				db.Save(db.DBClient, &d)
+				go notify(notifyChannelsActive(d))
 			} else {
 				logrus.Infoln("deviceid not found,deviceid:", d.DeviceID, "pdid:", message.DeviceID, "err", err)
 			}

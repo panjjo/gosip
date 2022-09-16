@@ -1,10 +1,11 @@
-package main
+package sipapi
 
 import (
 	"fmt"
 	"net/http"
 
-	"github.com/panjjo/gosip/sip"
+	"github.com/panjjo/gosip/db"
+	sip "github.com/panjjo/gosip/sip/s"
 	"github.com/panjjo/gosip/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -78,8 +79,8 @@ func handlerRegister(req *sip.Request, tx *sip.Transaction) {
 		if !ok {
 			return
 		}
-		user := NVRDevices{}
-		if err := dbClient.Get(userTB, M{"deviceid": fromUser.DeviceID}, &user); err == nil {
+		user := Devices{DeviceID: fromUser.DeviceID}
+		if err := db.Get(db.DBClient, &user); err == nil {
 			if !user.Regist {
 				// 如果数据库里用户未激活，替换user数据
 				fromUser.PWD = user.PWD
@@ -101,12 +102,12 @@ func handlerRegister(req *sip.Request, tx *sip.Transaction) {
 				if !user.Regist {
 					// 第一次激活，保存数据库
 					user.Regist = true
-					dbClient.Update(userTB, M{"deviceid": user.DeviceID}, M{"$set": user})
+					db.DBClient.Save(user)
 					logrus.Infoln("new user regist,id:", user.DeviceID)
 				}
 				tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "OK", nil))
 				// 注册成功后查询设备信息，获取制作厂商等信息
-				go notify(notifyUserRegister(user))
+				go notify(notifyDevicesRegister(user))
 				go sipDeviceInfo(fromUser)
 				return
 			}

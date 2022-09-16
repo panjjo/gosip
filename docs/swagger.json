@@ -1,0 +1,505 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "GB28181 SIP服务端.",
+        "title": "GoSIP",
+        "termsOfService": "https://github.com/panjjo/gosip",
+        "contact": {
+            "name": "GoSIP",
+            "url": "https://github.com/panjjo/gosip",
+            "email": "panjjo@vip.qq.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "2.0"
+    },
+    "host": "localhost:8090",
+    "basePath": "/",
+    "paths": {
+        "/channels/{id}/streams": {
+            "post": {
+                "description": "直播一个通道最多存在一个流，回放每请求一次生成一个流",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "streams"
+                ],
+                "summary": "监控播放（直播/回放）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "通道id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "是否回放，1回放，0直播，默认0",
+                        "name": "replay",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "回放开始时间，时间戳，replay=1时必传",
+                        "name": "start",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "回放结束时间，时间戳，replay=1时必传",
+                        "name": "end",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/sipapi.Play"
+                        }
+                    },
+                    "1000": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1001": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1002": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1003": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/devices": {
+            "get": {
+                "description": "通过此接口查询设备列表",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "devices"
+                ],
+                "summary": "设备列表接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "每页条数，默认20，最大100",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "页数，默认0",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/sipapi.Devices"
+                        }
+                    },
+                    "1000": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1001": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1002": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1003": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "通过此接口新增一个设备，获取设备id",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "devices"
+                ],
+                "summary": "设备新增接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "设备密码(GB28181认证密码)",
+                        "name": "pwd",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "设备名称",
+                        "name": "name",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/sipapi.Devices"
+                        }
+                    },
+                    "1000": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1001": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1002": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1003": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/devices/{id}/channels": {
+            "post": {
+                "description": "通过此接口在设备下新增通道，获取通道id",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "channels"
+                ],
+                "summary": "设备新增接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "设备id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "通道备注",
+                        "name": "memo",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/sipapi.Devices"
+                        }
+                    },
+                    "1000": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1001": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1002": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1003": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/streams/{id}": {
+            "delete": {
+                "description": "无人观看5分钟自动关闭，直播流无需调用此接口。",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "streams"
+                ],
+                "summary": "停止播放（直播/回放）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "流id,播放接口返回的streamid",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1000": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1001": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1002": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1003": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "m.SysInfo": {
+            "type": "object",
+            "properties": {
+                "addtime": {
+                    "type": "integer"
+                },
+                "cid": {
+                    "description": "CID 通道id固定头部",
+                    "type": "string"
+                },
+                "cnum": {
+                    "description": "CNUM 当前通道数",
+                    "type": "integer"
+                },
+                "did": {
+                    "description": "DID 设备id固定头部",
+                    "type": "string"
+                },
+                "dnum": {
+                    "description": "DNUM 当前设备数",
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lid": {
+                    "description": "LID 当前服务id",
+                    "type": "string"
+                },
+                "mediaServer": {
+                    "type": "boolean"
+                },
+                "region": {
+                    "description": "Region 当前域",
+                    "type": "string"
+                },
+                "uptime": {
+                    "type": "integer"
+                }
+            }
+        },
+        "sipapi.Devices": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "description": "ActiveAt 最后心跳检测时间",
+                    "type": "integer"
+                },
+                "addtime": {
+                    "type": "integer"
+                },
+                "deviceid": {
+                    "description": "DeviceID 设备id",
+                    "type": "string"
+                },
+                "devicetype": {
+                    "description": "设备类型DVR，NVR",
+                    "type": "string"
+                },
+                "firmware": {
+                    "description": "Firmware 固件版本",
+                    "type": "string"
+                },
+                "host": {
+                    "description": "Host Via 地址",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "manufacturer": {
+                    "description": "Manufacturer 制造厂商",
+                    "type": "string"
+                },
+                "model": {
+                    "description": "Model 型号",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Name 设备名称",
+                    "type": "string"
+                },
+                "port": {
+                    "description": "Port via 端口",
+                    "type": "string"
+                },
+                "proto": {
+                    "description": "Proto 协议",
+                    "type": "string"
+                },
+                "pwd": {
+                    "description": "PWD 密码",
+                    "type": "string"
+                },
+                "raddr": {
+                    "description": "RAddr via recevied",
+                    "type": "string"
+                },
+                "region": {
+                    "description": "Region 设备域",
+                    "type": "string"
+                },
+                "regist": {
+                    "description": "Regist 是否注册",
+                    "type": "boolean"
+                },
+                "report": {
+                    "description": "Rport via rport",
+                    "type": "string"
+                },
+                "source": {
+                    "description": "Source",
+                    "type": "string"
+                },
+                "sysinfo": {
+                    "$ref": "#/definitions/m.SysInfo"
+                },
+                "transport": {
+                    "description": "TransPort via transport",
+                    "type": "string"
+                },
+                "uptime": {
+                    "type": "integer"
+                },
+                "uri": {
+                    "type": "string"
+                }
+            }
+        },
+        "sipapi.Play": {
+            "type": "object",
+            "properties": {
+                "channelid": {
+                    "description": "通道ID",
+                    "type": "string"
+                },
+                "http": {
+                    "description": "m3u8播放地址",
+                    "type": "string"
+                },
+                "rtmp": {
+                    "description": "rtmp 播放地址",
+                    "type": "string"
+                },
+                "rtsp": {
+                    "description": "rtsp 播放地址",
+                    "type": "string"
+                },
+                "ssrc": {
+                    "description": "流标示",
+                    "type": "string"
+                },
+                "streamid": {
+                    "description": "视频流ID",
+                    "type": "string"
+                },
+                "ws-flv": {
+                    "description": "flv 播放地址",
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BasicAuth": {
+            "type": "basic"
+        }
+    }
+}

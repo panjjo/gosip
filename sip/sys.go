@@ -1,4 +1,4 @@
-package main
+package sipapi
 
 import (
 	"fmt"
@@ -10,41 +10,31 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/panjjo/gosip/sip"
+	"github.com/panjjo/gosip/db"
+	"github.com/panjjo/gosip/m"
+	sip "github.com/panjjo/gosip/sip/s"
 	"github.com/panjjo/gosip/utils"
 	"github.com/sirupsen/logrus"
-	"go.mongodb.org/mongo-driver/mongo"
 )
+
+func Start() {
+	// 数据库表初始化 启动时自动同步数据结构到数据库
+	db.DBClient.AutoMigrate(new(Devices))
+	db.DBClient.AutoMigrate(new(Channels))
+	db.DBClient.AutoMigrate(new(Streams))
+	db.DBClient.AutoMigrate(new(m.SysInfo))
+	db.DBClient.AutoMigrate(new(RecordFiles))
+
+	LoadSYSInfo()
+
+	srv = sip.NewServer()
+	srv.RegistHandler(sip.REGISTER, handlerRegister)
+	srv.RegistHandler(sip.MESSAGE, handlerMessage)
+	go srv.ListenUDPServer(config.UDP)
+}
 
 // MODDEBUG MODDEBUG
 var MODDEBUG = "DEBUG"
-
-var sysTB = "sysinfo"
-var fileTB = "files"
-
-type sysInfo struct {
-	// Region 当前域
-	Region string `json:"region" bson:"region"  yaml:"region" mapstructure:"region"`
-	// UID 用户id固定头部
-	UID string `json:"uid" bson:"uid"  yaml:"uid" mapstructure:"uid"`
-	// UNUM 当前用户数
-	UNUM int `json:"unum" bson:"unum" yaml:"unum" mapstructure:"unum"`
-	// DID 设备id固定头部
-	DID string `json:"did" bson:"did" yaml:"did" mapstructure:"did"`
-	// DNUM 当前设备数
-	DNUM int `json:"dnum" bson:"dnum" yaml:"dnum" mapstructure:"dnum"`
-	// LID 当前服务id
-	LID         string `json:"lid" bson:"lid" yaml:"lid" mapstructure:"lid"`
-	MediaServer bool
-	// 媒体服务器接流地址
-	mediaServerRtpIP net.IP
-	// 媒体服务器接流端口
-	mediaServerRtpPort int
-}
-
-func defaultInfo() sysInfo {
-	return config.GB28181
-}
 
 // ActiveDevices 记录当前活跃设备，请求播放时设备必须处于活跃状态
 type ActiveDevices struct {
@@ -52,42 +42,47 @@ type ActiveDevices struct {
 }
 
 // Get Get
-func (a *ActiveDevices) Get(key string) (NVRDevices, bool) {
+func (a *ActiveDevices) Get(key string) (Devices, bool) {
 	if v, ok := a.Load(key); ok {
-		return v.(NVRDevices), ok
+		return v.(Devices), ok
 	}
-	return NVRDevices{}, false
+	return Devices{}, false
 }
 
 var _activeDevices ActiveDevices
 
 // 系统运行信息
-var _sysinfo sysInfo
+var _sysinfo *m.SysInfo
+var config *m.Config
 
-func loadSYSInfo() {
+func LoadSYSInfo() {
 
+	config = m.MConfig
 	_activeDevices = ActiveDevices{sync.Map{}}
 
-	_playList = playList{&sync.Map{}, &sync.Map{}, 0}
+	StreamList = streamsList{&sync.Map{}, &sync.Map{}, 0}
 	ssrcLock = &sync.Mutex{}
 	_recordList = &sync.Map{}
-	_apiRecordList = apiRecordList{items: map[string]*apiRecordItem{}, l: sync.RWMutex{}}
+	RecordList = apiRecordList{items: map[string]*apiRecordItem{}, l: sync.RWMutex{}}
 
 	// init sysinfo
-	_sysinfo = sysInfo{}
-	if err := dbClient.Get(sysTB, M{}, &_sysinfo); err != nil {
-		if err == mongo.ErrNoDocuments {
+	_sysinfo = &m.SysInfo{}
+	if err := db.Get(db.DBClient, _sysinfo); err != nil {
+		if db.RecordNotFound(err) {
 			//  初始不存在
-			_sysinfo = defaultInfo()
-			if err = dbClient.Insert(sysTB, _sysinfo); err != nil {
+			_sysinfo = m.DefaultInfo()
+
+			if err = db.Create(db.DBClient, _sysinfo); err != nil {
 				logrus.Fatalf("1 init sysinfo err:%v", err)
 			}
 		} else {
 			logrus.Fatalf("2 init sysinfo err:%v", err)
 		}
 	}
+	m.MConfig.GB28181 = _sysinfo
+
 	uri, _ := sip.ParseSipURI(fmt.Sprintf("sip:%s@%s", _sysinfo.LID, _sysinfo.Region))
-	_serverDevices = NVRDevices{
+	_serverDevices = Devices{
 		DeviceID: _sysinfo.LID,
 		Region:   _sysinfo.Region,
 		addr: &sip.Address{
@@ -106,8 +101,8 @@ func loadSYSInfo() {
 	if err != nil {
 		logrus.Fatalf("media rtp url error,url:%s,err:%v", config.Media.RTP, err)
 	}
-	_sysinfo.mediaServerRtpIP = ipaddr.IP
-	_sysinfo.mediaServerRtpPort, _ = strconv.Atoi(url.Port())
+	_sysinfo.MediaServerRtpIP = ipaddr.IP
+	_sysinfo.MediaServerRtpPort, _ = strconv.Atoi(url.Port())
 }
 
 // zlm接收到的ssrc为16进制。发起请求的ssrc为10进制
