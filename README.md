@@ -12,7 +12,6 @@ zlm免编译docker镜像 [zlm docker image](https://hub.docker.com/repository/do
 - 重新整理了api接口，生成了swagger文档，可以直接在线调试
 - go版本升级到1.9
 
-[![asciicast](./demo/api.png)](https://down-yss.oss-cn-hangzhou.aliyuncs.com/v.m4v)
 
 ---
 ## 快速开始
@@ -28,6 +27,8 @@ zlm免编译docker镜像 [zlm docker image](https://hub.docker.com/repository/do
 10. 根据返回的播放地址进行播放
 11. 调用关闭流接口（DELETE /streams/:id) 关闭流
 
+### 视频教程
+[![asciicast](./demo/api.png)](https://down-yss.oss-cn-hangzhou.aliyuncs.com/v.m4v)
 
 
 ## 功能支持
