@@ -12,6 +12,8 @@ zlm免编译docker镜像 [zlm docker image](https://hub.docker.com/repository/do
 - 重新整理了api接口，生成了swagger文档，可以直接在线调试
 - go版本升级到1.9
 
+[![Watch the video](https://raw.github.com/GabLeRoux/WebMole/master/ressources/WebMole_Youtube_Video.png)](/demo/v.m4v)
+
 ---
 ## 快速开始
 1. 运行zlmedia 具体运行方式请参考[ZLMediaKit](https://github.com/xia-chu/ZLMediaKit)

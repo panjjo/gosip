@@ -102,7 +102,7 @@ func handlerRegister(req *sip.Request, tx *sip.Transaction) {
 				if !user.Regist {
 					// 第一次激活，保存数据库
 					user.Regist = true
-					db.DBClient.Save(user)
+					db.DBClient.Save(&user)
 					logrus.Infoln("new user regist,id:", user.DeviceID)
 				}
 				tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "OK", nil))

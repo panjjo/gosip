@@ -7,11 +7,11 @@ api: 0.0.0.0:8090 # sip服务 restfulapi 端口
 secret: z9hG4bK1233983766 # restful接口验证key 验证请求使用
 logger: trace
 media:
-  restful: http://192.168.1.90:8080 # media 服务器restfulapi地址 
-  http: http://mediaserver  # media 服务器 http请求地址
-  WS: ws://mediaserver  # media 服务器 ws请求地址
-  rtmp: rtmp://mediaserver:5555  # media 服务器 rtmp请求地址
-  rtsp: rtsp://mediaserver:8554   # media 服务器 rtsp请求地址
+  restful: http://localhost:8080 # media 服务器restfulapi地址 
+  http: http://localhost:8080  # media 服务器 http请求地址
+  WS: ws://localhost:8080  # media 服务器 ws请求地址
+  rtmp: rtmp://localhost:1935  # media 服务器 rtmp请求地址
+  rtsp: rtsp://localhost:554   # media 服务器 rtsp请求地址
   rtp: http://192.168.1.90:10000  # media rtp请求地址 zlm对外开放的接受rtp推流的地址
   secret: 035c73f7-bb6b-4889-a715-d9eb2d1925cc # zlm secret key 用来请求zlm接口验证
 stream:
@@ -24,13 +24,8 @@ gb28181: # gb28181 域，系统id，用户id，通道id，用户数量，初次�
   cid:    37070000081318       # 通道前缀
   dnum:   0 # 设备id = did + dnum
   cnum:   0 # 通道id = cid + cnum
-record:
-  recordmax: 20 # 视频录制最长时间，-1表示不限制，不设置或0默认10分钟，单位秒。到时间后自动停止录制
-  filepath: /media/www # zlm 不会自动清理录制文件，需要配置录像文件路径和定时清理时间。
-  expire: 5 # 录制文件录制完成后多久删除，单位天，不设置默认7天。
 notify:  
-  devices_active: http://supervise.foodsafety:8080/monitor # 设备活跃通知
-  devices_regiest: http://supervise.foodsafety:8080/monitor #设备注册成功通知
-  channels_active: http://supervise.foodsafety:8080/monitor # 通道活跃通知
-  records_stop: http://supervise.foodsafety:8080/monitor # 录制文件录制完成通知  一定要配置zlm的webhook地址为此项目sip服务的restfulapi端口地址，否则录制存在问题。
+  devices_active: # 设备活跃通知
+  devices_regiest: #设备注册成功通知
+  channels_active:  # 通道活跃通知
 
