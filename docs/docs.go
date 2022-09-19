@@ -25,6 +25,277 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/channels": {
+            "get": {
+                "description": "可以根据查询条件查询通道列表",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "channels"
+                ],
+                "summary": "通道列表接口",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "条数(0-100) 默认20",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "间隔 默认0",
+                        "name": "skip",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "排序,例:-key,根据key倒序,key,根据key正序",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "查询条件,使用规则详情请看帮助",
+                        "name": "filters",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/api.ChannelsListResponse"
+                        }
+                    },
+                    "1000": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1001": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1002": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1003": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/channels/{id}": {
+            "post": {
+                "description": "调整通道信息",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "channels"
+                ],
+                "summary": "通道修改接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "通道id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "通道备注",
+                        "name": "memo",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "播放类型，pull 媒体服务器拉流，push 摄像头推流,默认push",
+                        "name": "streamtype",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "静态拉流地址，streamtype=pull 时生效。",
+                        "name": "url",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/sipapi.Channels"
+                        }
+                    },
+                    "1000": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1001": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1002": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1003": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "删除通道信息",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "channels"
+                ],
+                "summary": "通道删除接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "通道id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1000": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1001": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1002": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1003": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/channels/{id}/records": {
+            "get": {
+                "description": "用来获取通道设备存储的可回放时间段列表，注意控制时间跨度，跨度越大，数据量越多，返回越慢，甚至会超时（最多10s）。",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "records"
+                ],
+                "summary": "回放文件时间列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "通道id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "开始时间，时间戳",
+                        "name": "start",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "结束时间，时间戳",
+                        "name": "end",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/sipapi.Records"
+                        }
+                    },
+                    "1000": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1001": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1002": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1003": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/channels/{id}/streams": {
             "post": {
                 "description": "直播一个通道最多存在一个流，回放每请求一次生成一个流",
@@ -69,7 +340,7 @@ const docTemplate = `{
                     "0": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/sipapi.Play"
+                            "$ref": "#/definitions/sipapi.Streams"
                         }
                     },
                     "1000": {
@@ -101,7 +372,7 @@ const docTemplate = `{
         },
         "/devices": {
             "get": {
-                "description": "通过此接口查询设备列表",
+                "description": "可以根据查询条件查询设备列表",
                 "consumes": [
                     "application/x-www-form-urlencoded"
                 ],
@@ -114,15 +385,27 @@ const docTemplate = `{
                 "summary": "设备列表接口",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "每页条数，默认20，最大100",
+                        "type": "integer",
+                        "description": "条数(0-100) 默认20",
                         "name": "limit",
                         "in": "query"
                     },
                     {
+                        "type": "integer",
+                        "description": "间隔 默认0",
+                        "name": "skip",
+                        "in": "query"
+                    },
+                    {
                         "type": "string",
-                        "description": "页数，默认0",
-                        "name": "page",
+                        "description": "排序,例:-key,根据key倒序,key,根据key正序",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "查询条件,使用规则详情请看帮助",
+                        "name": "filters",
                         "in": "query"
                     }
                 ],
@@ -130,7 +413,7 @@ const docTemplate = `{
                     "0": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/sipapi.Devices"
+                            "$ref": "#/definitions/api.DevicesListResponse"
                         }
                     },
                     "1000": {
@@ -221,6 +504,128 @@ const docTemplate = `{
                 }
             }
         },
+        "/devices/{id}": {
+            "post": {
+                "description": "调整设备信息",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "devices"
+                ],
+                "summary": "设备修改接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "设备id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "设备密码(GB28181认证密码)",
+                        "name": "pwd",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "设备名称",
+                        "name": "name",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/sipapi.Devices"
+                        }
+                    },
+                    "1000": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1001": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1002": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1003": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "删除设备信息",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "devices"
+                ],
+                "summary": "设备删除接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "设备id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1000": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1001": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1002": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1003": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/devices/{id}/channels": {
             "post": {
                 "description": "通过此接口在设备下新增通道，获取通道id",
@@ -233,7 +638,7 @@ const docTemplate = `{
                 "tags": [
                     "channels"
                 ],
-                "summary": "设备新增接口",
+                "summary": "通道新增接口",
                 "parameters": [
                     {
                         "type": "string",
@@ -247,13 +652,98 @@ const docTemplate = `{
                         "description": "通道备注",
                         "name": "memo",
                         "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "播放类型，pull 媒体服务器拉流，push 摄像头推流,默认push",
+                        "name": "streamtype",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "静态拉流地址，streamtype=pull 时生效。",
+                        "name": "url",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
                     "0": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/sipapi.Devices"
+                            "$ref": "#/definitions/sipapi.Channels"
+                        }
+                    },
+                    "1000": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1001": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1002": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1003": {
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/streams": {
+            "get": {
+                "description": "可以根据查询条件查询视频流列表",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "streams"
+                ],
+                "summary": "视频流列表接口",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "条数(0-100) 默认20",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "间隔 默认0",
+                        "name": "skip",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "排序,例:-key,根据key倒序,key,根据key正序",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "查询条件,使用规则详情请看帮助",
+                        "name": "filters",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/api.StreamsListResponse"
                         }
                     },
                     "1000": {
@@ -341,6 +831,48 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "api.ChannelsListResponse": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sipapi.Channels"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "api.DevicesListResponse": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sipapi.Devices"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "api.StreamsListResponse": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sipapi.Streams"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "m.SysInfo": {
             "type": "object",
             "properties": {
@@ -378,6 +910,99 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "uptime": {
+                    "type": "integer"
+                }
+            }
+        },
+        "sipapi.Channels": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "description": "Active 最后活跃时间",
+                    "type": "integer"
+                },
+                "address": {
+                    "description": "Address ip地址",
+                    "type": "string"
+                },
+                "addtime": {
+                    "type": "integer"
+                },
+                "channelid": {
+                    "description": "ChannelID 通道编码",
+                    "type": "string"
+                },
+                "civilcode": {
+                    "type": "string"
+                },
+                "deviceid": {
+                    "description": "DeviceID 设备编号",
+                    "type": "string"
+                },
+                "fps": {
+                    "description": "视频FPS",
+                    "type": "integer"
+                },
+                "height": {
+                    "description": "视频高",
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "manufacturer": {
+                    "type": "string"
+                },
+                "memo": {
+                    "description": "Memo 备注（用来标示通道信息）",
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Name 通道名称（设备端设置名称）",
+                    "type": "string"
+                },
+                "owner": {
+                    "type": "string"
+                },
+                "parental": {
+                    "type": "integer"
+                },
+                "registerway": {
+                    "type": "integer"
+                },
+                "safetyway": {
+                    "type": "integer"
+                },
+                "secrecy": {
+                    "type": "integer"
+                },
+                "status": {
+                    "description": "Status 状态  on 在线",
+                    "type": "string"
+                },
+                "streamtype": {
+                    "description": "pull 媒体服务器主动拉流，push 监控设备主动推流",
+                    "type": "string"
+                },
+                "uptime": {
+                    "type": "integer"
+                },
+                "uri": {
+                    "type": "string"
+                },
+                "url": {
+                    "description": "streamtype=pull时，拉流地址",
+                    "type": "string"
+                },
+                "vf": {
+                    "description": "视频编码格式",
+                    "type": "string"
+                },
+                "width": {
+                    "description": "视频宽",
                     "type": "integer"
                 }
             }
@@ -470,15 +1095,80 @@ const docTemplate = `{
                 }
             }
         },
-        "sipapi.Play": {
+        "sipapi.RecordDate": {
             "type": "object",
             "properties": {
+                "date": {
+                    "description": "日期",
+                    "type": "string"
+                },
+                "items": {
+                    "description": "时间段",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sipapi.RecordInfo"
+                    }
+                }
+            }
+        },
+        "sipapi.RecordInfo": {
+            "type": "object",
+            "properties": {
+                "end": {
+                    "type": "integer"
+                },
+                "start": {
+                    "type": "integer"
+                }
+            }
+        },
+        "sipapi.Records": {
+            "type": "object",
+            "properties": {
+                "daynum": {
+                    "description": "存在录像的天数",
+                    "type": "integer"
+                },
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sipapi.RecordDate"
+                    }
+                },
+                "timenum": {
+                    "type": "integer"
+                }
+            }
+        },
+        "sipapi.Streams": {
+            "type": "object",
+            "properties": {
+                "addtime": {
+                    "type": "integer"
+                },
+                "callid": {
+                    "description": "header callid",
+                    "type": "string"
+                },
                 "channelid": {
                     "description": "通道ID",
                     "type": "string"
                 },
+                "cseqno": {
+                    "type": "integer"
+                },
+                "deviceid": {
+                    "description": "设备ID",
+                    "type": "string"
+                },
                 "http": {
                     "description": "m3u8播放地址",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "msg": {
                     "type": "string"
                 },
                 "rtmp": {
@@ -489,15 +1179,34 @@ const docTemplate = `{
                     "description": "rtsp 播放地址",
                     "type": "string"
                 },
-                "ssrc": {
-                    "description": "流标示",
-                    "type": "string"
+                "status": {
+                    "description": "0正常 1关闭 -1 尚未开始",
+                    "type": "integer"
+                },
+                "stop": {
+                    "description": "是否停止",
+                    "type": "boolean"
+                },
+                "stream": {
+                    "description": "zlm是否收到流",
+                    "type": "boolean"
                 },
                 "streamid": {
-                    "description": "视频流ID",
+                    "description": "视频流ID gb28181的ssrc",
                     "type": "string"
                 },
-                "ws-flv": {
+                "streamtype": {
+                    "description": "pull 媒体服务器主动拉流，push 监控设备主动推流",
+                    "type": "string"
+                },
+                "t": {
+                    "description": "0  直播 1 历史",
+                    "type": "integer"
+                },
+                "uptime": {
+                    "type": "integer"
+                },
+                "wsflv": {
                     "description": "flv 播放地址",
                     "type": "string"
                 }

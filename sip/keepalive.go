@@ -38,7 +38,7 @@ func sipMessageKeepalive(u Devices, body []byte) error {
 		_activeDevices.Delete(u.DeviceID)
 	}
 	go notify(notifyDevicesAcitve(u.DeviceID, message.Status))
-	_, err := db.UpdateAll(db.DBClient, new(Devices), map[string]interface{}{"device_id=?": u.DeviceID}, Devices{
+	_, err := db.UpdateAll(db.DBClient, new(Devices), map[string]interface{}{"deviceid=?": u.DeviceID}, Devices{
 		Host:     u.Host,
 		Port:     u.Port,
 		Rport:    u.Rport,

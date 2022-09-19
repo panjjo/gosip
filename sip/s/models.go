@@ -120,11 +120,11 @@ func GetCatalogXML(id string) []byte {
 }
 
 // GetRecordInfoXML 获取录像文件列表指令
-func GetRecordInfoXML(id string, start, end int64) []byte {
-	return []byte(fmt.Sprintf(RecordInfoXML, utils.RandInt(100000, 999999), id, time.Unix(start, 0).Format("2006-01-02T15:04:05"), time.Unix(end, 0).Format("2006-01-02T15:04:05")))
+func GetRecordInfoXML(id string, sceqNo int, start, end int64) []byte {
+	return []byte(fmt.Sprintf(RecordInfoXML, sceqNo, id, time.Unix(start, 0).Format("2006-01-02T15:04:05"), time.Unix(end, 0).Format("2006-01-02T15:04:05")))
 }
 
-//RFC3261BranchMagicCookie RFC3261BranchMagicCookie
+// RFC3261BranchMagicCookie RFC3261BranchMagicCookie
 const RFC3261BranchMagicCookie = "z9hG4bK"
 
 // GenerateBranch returns random unique branch ID.

@@ -34,15 +34,15 @@ func KeepLive(db *gorm.DB, d time.Duration) {
 	}
 }
 
-func Create(db *gorm.DB, obj interface{}) error {
+func Create(db *gorm.DB, obj any) error {
 	return db.Create(obj).Error
 }
 
-func Save(db *gorm.DB, obj interface{}) error {
+func Save(db *gorm.DB, obj any) error {
 	return db.Save(obj).Error
 }
 
-func UpdateAll(db *gorm.DB, model interface{}, query map[string]interface{}, update interface{}) (int64, error) {
+func UpdateAll(db *gorm.DB, model any, query map[string]any, update any) (int64, error) {
 	db = db.Model(model)
 	for k, v := range query {
 		db = db.Where(k, v)
@@ -51,33 +51,33 @@ func UpdateAll(db *gorm.DB, model interface{}, query map[string]interface{}, upd
 	return db.RowsAffected, db.Error
 }
 
-func Get(db *gorm.DB, obj interface{}) error {
+func Get(db *gorm.DB, obj any) error {
 	return db.Where(obj).First(obj).Error
 }
-func GetQ(db *gorm.DB, obj interface{}, query map[string]interface{}, ors ...[]map[string]interface{}) error {
+func GetQ(db *gorm.DB, obj any, query map[string]any, ors ...[]map[string]any) error {
 	t := GenQueryDB(db, query, ors...)
 	return t.First(obj).Error
 }
 
-func Del(db *gorm.DB, obj interface{}) error {
+func Del(db *gorm.DB, obj any) error {
 	return db.Where(obj).Delete(obj).Error
 }
-func DelQ(db *gorm.DB, obj interface{}, query map[string]interface{}, ors ...[]map[string]interface{}) error {
+func DelQ(db *gorm.DB, obj any, query map[string]any, ors ...[]map[string]any) error {
 	t := GenQueryDB(db, query, ors...)
 	return t.Delete(obj).Error
 }
-func Find(db *gorm.DB, query map[string]interface{}, ors [][]map[string]interface{}, sort string, skip, limit int64, objs interface{}) error {
+func Find(db *gorm.DB, query map[string]any, ors [][]map[string]any, sort string, skip, limit int, objs any) error {
 	ndb := GenQueryDB(db, query, ors...)
 	ndb = OLO(ndb, sort, skip, limit)
 	return ndb.Find(objs).Error
 }
-func FindT(db *gorm.DB, model interface{}, objs interface{}, query map[string]interface{}, order string, skip, limit int64, total bool) (int64, error) {
+func FindT(db *gorm.DB, model any, objs any, query map[string]any, order string, skip, limit int, total bool) (int64, error) {
 	db = GenQueryDB(db, query)
 	db = OLO(db, order, skip, limit)
 	return Count(db, model, total), db.Find(objs).Error
 }
 
-func FindWithJson(db *gorm.DB, model interface{}, objs interface{}, query, order string, skip, limit int64, total bool) (int64, error) {
+func FindWithJson(db *gorm.DB, model any, objs any, query, order string, skip, limit int, total bool) (int64, error) {
 	if query != "" {
 		qmap, err := GenQueryMapWithJSON(query)
 		if err != nil {
@@ -90,7 +90,7 @@ func FindWithJson(db *gorm.DB, model interface{}, objs interface{}, query, order
 	return Count(db, model, total), db.Find(objs).Error
 }
 
-func Count(db *gorm.DB, m interface{}, reqtotal bool) int64 {
+func Count(db *gorm.DB, m any, reqtotal bool) int64 {
 	total := int64(0)
 	if reqtotal {
 		db.Model(m).Offset(-1).Limit(-1).Count(&total)
@@ -99,13 +99,13 @@ func Count(db *gorm.DB, m interface{}, reqtotal bool) int64 {
 }
 
 // DBPreload 数据根据字段预加载时添加扩展,preloads value 支持单项数据以及 []interface{}{"Field", ...} 数据
-func Preload(db *gorm.DB, fields map[string]struct{}, preloads map[string]interface{}) *gorm.DB {
+func Preload(db *gorm.DB, fields map[string]struct{}, preloads map[string]any) *gorm.DB {
 	for k, v := range preloads {
 		if _, ok := fields[k]; ok {
 			vT := reflect.TypeOf(v)
 			switch vT.Kind() {
 			case reflect.Array, reflect.Slice:
-				nv, ok := v.([]interface{})
+				nv, ok := v.([]any)
 				if !ok {
 					continue
 				}
@@ -118,14 +118,14 @@ func Preload(db *gorm.DB, fields map[string]struct{}, preloads map[string]interf
 	}
 	return db
 }
-func GenQueryDB(db *gorm.DB, Where map[string]interface{}, Ors ...[]map[string]interface{}) *gorm.DB {
+func GenQueryDB(db *gorm.DB, Where map[string]any, Ors ...[]map[string]any) *gorm.DB {
 	for k, v := range Where {
 		if len(k) == 0 {
 			continue
 		}
 		if v != nil {
 			if strings.Count(k, "?") > 1 {
-				if nv, ok := v.([]interface{}); ok {
+				if nv, ok := v.([]any); ok {
 					db = db.Where(k, nv...)
 				}
 			} else {
@@ -145,9 +145,9 @@ func GenQueryDB(db *gorm.DB, Where map[string]interface{}, Ors ...[]map[string]i
 }
 
 // GenOr 生成or的sql
-func GenOr(Ors ...[]map[string]interface{}) (string, []interface{}) {
+func GenOr(Ors ...[]map[string]any) (string, []any) {
 	sqlstr := []string{}
-	sqlV := []interface{}{}
+	sqlV := []any{}
 	for _, or := range Ors {
 		if len(or) == 0 {
 			continue
@@ -175,7 +175,7 @@ func GenOr(Ors ...[]map[string]interface{}) (string, []interface{}) {
 
 	return "(" + strings.Join(sqlstr, ") AND (") + ")", sqlV
 }
-func OLO(db *gorm.DB, sort string, offset, limit int64) *gorm.DB {
+func OLO(db *gorm.DB, sort string, offset, limit int) *gorm.DB {
 	sort = strings.Trim(sort, ",")
 	if sort != "" {
 		orders := strings.Split(sort, ",")

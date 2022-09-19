@@ -56,8 +56,9 @@ func (ri *apiRecordItem) Start() (string, interface{}) {
 	}
 	if config.Record.Recordmax != -1 {
 		go func() {
+			tick := time.NewTicker(time.Duration(config.Record.Recordmax) * time.Second)
 			select {
-			case <-time.Tick(time.Duration(config.Record.Recordmax) * time.Second):
+			case <-tick.C:
 				// 自动停止录制
 				ri.Stop()
 				url := <-ri.resp
@@ -67,7 +68,7 @@ func (ri *apiRecordItem) Start() (string, interface{}) {
 			}
 		}()
 	}
-	err = db.Create(db.DBClient, RecordFiles{
+	err = db.Create(db.DBClient, Files{
 		FID:    ri.id,
 		Stream: ri.params.Get("stream"),
 		params: ri.params,
@@ -87,15 +88,15 @@ func (ri *apiRecordItem) Stop() (string, interface{}) {
 }
 
 func (ri *apiRecordItem) Down(url string) {
-	db.UpdateAll(db.DBClient, new(RecordFiles), db.M{"id=?": ri.id}, db.M{"end": time.Now().Unix(), "status": 1, "file": url})
+	db.UpdateAll(db.DBClient, new(Files), db.M{"id=?": ri.id}, db.M{"end": time.Now().Unix(), "status": 1, "file": url})
 }
 
 func (ri *apiRecordItem) Resp(data string) {
 	ri.resp <- data
 }
 
-// RecordFiles RecordFiles
-type RecordFiles struct {
+// Files Files
+type Files struct {
 	db.DBModel
 	Start  int64  `json:"start" bson:"start"`
 	End    int64  `json:"end" bson:"end"`
@@ -107,13 +108,13 @@ type RecordFiles struct {
 	params url.Values
 }
 
-func ClearRecordFiles() {
-	var files []RecordFiles
+func ClearFiles() {
+	var files []Files
 	var ids []string
 	for {
-		files = []RecordFiles{}
+		files = []Files{}
 		ids = []string{}
-		db.FindT(db.DBClient, new(RecordFiles), &files, db.M{"end < ?": time.Now().Unix() - int64(config.Record.Expire)*86400, "clear=?": false}, "", 0, 100, false)
+		db.FindT(db.DBClient, new(Files), &files, db.M{"end < ?": time.Now().Unix() - int64(config.Record.Expire)*86400, "clear=?": false}, "", 0, 100, false)
 		for _, file := range files {
 			filename := filepath.Join(config.Record.FilePath, file.File)
 			if _, err := os.Stat(filename); err == nil {
@@ -122,7 +123,7 @@ func ClearRecordFiles() {
 			ids = append(ids, file.FID)
 		}
 		if len(ids) > 0 {
-			db.UpdateAll(db.DBClient, new(RecordFiles), db.M{"id in (?)": ids}, db.M{"clear": true})
+			db.UpdateAll(db.DBClient, new(Files), db.M{"id in (?)": ids}, db.M{"clear": true})
 		}
 		if len(files) != 100 {
 			break

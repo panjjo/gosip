@@ -59,8 +59,8 @@ func init() {
 }
 
 func _cron() {
-	c := cron.New()                                     // 新建一个定时任务对象
-	c.AddFunc("0 */5 * * * *", sipapi.CheckStreams)     // 定时关闭推送流
-	c.AddFunc("0 */5 * * * *", sipapi.ClearRecordFiles) // 定时清理录制文件
+	c := cron.New()                                 // 新建一个定时任务对象
+	c.AddFunc("0 */5 * * * *", sipapi.CheckStreams) // 定时关闭推送流
+	c.AddFunc("0 */5 * * * *", sipapi.ClearFiles)   // 定时清理录制文件
 	c.Start()
 }

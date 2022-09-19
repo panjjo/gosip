@@ -2,6 +2,7 @@ package sipapi
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"sort"
 	"sync"
@@ -13,21 +14,45 @@ import (
 )
 
 // 获取录像文件列表
-func sipRecordList(to Devices, start, end int64) error {
+func SipRecordList(to *Channels, start, end int64) (*Records, error) {
+	sn := utils.RandInt(100000, 999999)
+	resp := make(chan Records, 1)
+	defer close(resp)
+	device, ok := _activeDevices.Get(to.DeviceID)
+	if !ok {
+		return nil, errors.New("设备不在线")
+	}
+	channelURI, _ := sip.ParseURI(to.URIStr)
+	to.addr = &sip.Address{URI: channelURI}
+	recordKey := fmt.Sprintf("%s%d", to.ChannelID, sn)
+	_recordList.Store(recordKey, recordList{channelid: to.ChannelID, resp: resp, data: [][]int64{}, l: &sync.Mutex{}, s: start, e: end})
+	defer _recordList.Delete(recordKey)
 	hb := sip.NewHeaderBuilder().SetTo(to.addr).SetFrom(_serverDevices.addr).AddVia(&sip.ViaHop{
 		Params: sip.NewParams().Add("branch", sip.String{Str: sip.GenerateBranch()}),
 	}).SetContentType(&sip.ContentTypeXML).SetMethod(sip.MESSAGE)
-	req := sip.NewRequest("", sip.MESSAGE, to.addr.URI, sip.DefaultSipVersion, hb.Build(), sip.GetRecordInfoXML(to.DeviceID, start, end))
-	req.SetDestination(to.source)
+	req := sip.NewRequest("", sip.MESSAGE, to.addr.URI, sip.DefaultSipVersion, hb.Build(), sip.GetRecordInfoXML(to.ChannelID, sn, start, end))
+	req.SetDestination(device.source)
 	tx, err := srv.Request(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	response := tx.GetResponse()
 	if response.StatusCode() != http.StatusOK {
-		return errors.New(response.Reason())
+		return nil, errors.New(response.Reason())
 	}
-	return nil
+	tick := time.NewTicker(10 * time.Second)
+	select {
+	case res := <-resp:
+		return &res, nil
+	case <-tick.C:
+		// 10秒未完成返回当前获取到的数据
+		if list, ok := _recordList.Load(recordKey); ok {
+			info := list.(recordList)
+			data := transRecordList(info.data)
+			return &data, nil
+		}
+		return nil, errors.New("获取数据超时")
+	}
 }
 
 // MessageRecordInfoResponse 目录列表
@@ -54,12 +79,12 @@ type RecordItem struct {
 }
 
 type recordList struct {
-	deviceid string
-	resp     chan interface{}
-	num      int
-	data     [][]int64
-	l        *sync.Mutex
-	s, e     int64
+	channelid string
+	resp      chan Records
+	num       int
+	data      [][]int64
+	l         *sync.Mutex
+	s, e      int64
 }
 
 // 当前获取目录文件设备集合
@@ -71,7 +96,8 @@ func sipMessageRecordInfo(u Devices, body []byte) error {
 		logrus.Errorln("Message Unmarshal xml err:", err, "body:", string(body))
 		return err
 	}
-	if list, ok := _recordList.Load(message.DeviceID); ok {
+	recordKey := fmt.Sprintf("%s%d", message.DeviceID, message.SN)
+	if list, ok := _recordList.Load(recordKey); ok {
 		info := list.(recordList)
 		info.l.Lock()
 		defer info.l.Unlock()
@@ -94,17 +120,25 @@ func sipMessageRecordInfo(u Devices, body []byte) error {
 			// 获取到完整数据
 			info.resp <- transRecordList(info.data)
 		}
-		_recordList.Store(message.DeviceID, info)
+		_recordList.Store(recordKey, info)
 		return nil
 	}
 	return errors.New("recordlist devices not found")
 }
 
-// RecordResponse RecordResponse
-type RecordResponse struct {
-	DayTotal int           `json:"daynum"`
-	TimeNum  int           `json:"timenum"`
-	Data     []interface{} `json:"list"`
+// Records Records
+type Records struct {
+	// 存在录像的天数
+	DayTotal int          `json:"daynum"`
+	TimeNum  int          `json:"timenum"`
+	Data     []RecordDate `json:"list"`
+}
+
+type RecordDate struct {
+	// 日期
+	Date string `json:"date"`
+	// 时间段
+	Items []RecordInfo `json:"items"`
 }
 
 // RecordInfo RecordInfo
@@ -114,11 +148,11 @@ type RecordInfo struct {
 }
 
 // 将返回的多组数据合并，时间连续的进行合并，最后按照天返回数据，返回为某天内时间段列表
-func transRecordList(data [][]int64) RecordResponse {
+func transRecordList(data [][]int64) Records {
 	if len(data) == 0 {
-		return RecordResponse{}
+		return Records{}
 	}
-	res := RecordResponse{}
+	res := Records{}
 	list := map[string][]RecordInfo{}
 	sort.Slice(data, func(i, j int) bool {
 		return data[i][0] < data[j][0]
@@ -187,11 +221,11 @@ func transRecordList(data [][]int64) RecordResponse {
 			}
 		}
 	}
-	resData := []interface{}{}
+	resData := []RecordDate{}
 	for _, date := range dates {
-		resData = append(resData, map[string]interface{}{
-			"date":  date,
-			"items": list[date],
+		resData = append(resData, RecordDate{
+			Date:  date,
+			Items: list[date],
 		})
 
 	}

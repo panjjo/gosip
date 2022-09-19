@@ -17,11 +17,11 @@ import (
 // @Produce     json
 // @Param       pwd  formData string true "设备密码(GB28181认证密码)"
 // @Param       name formData string true "设备名称"
-// @Success     0     {object} sipapi.Devices
-// @Failure     1000  {object} string
-// @Failure     1001  {object} string
-// @Failure     1002  {object} string
-// @Failure     1003  {object} string
+// @Success     0    {object} sipapi.Devices
+// @Failure     1000 {object} string
+// @Failure     1001 {object} string
+// @Failure     1002 {object} string
+// @Failure     1003 {object} string
 // @Router      /devices [post]
 func DevicesCreate(c *gin.Context) {
 	pwd := c.PostForm("pwd")
@@ -60,34 +60,111 @@ func DevicesCreate(c *gin.Context) {
 	m.JsonResponse(c, m.StatusSucc, device)
 }
 
-// @Summary     设备列表接口
-// @Description 通过此接口查询设备列表
+// @Summary     设备修改接口
+// @Description 调整设备信息
 // @Tags        devices
 // @Accept      x-www-form-urlencoded
 // @Produce     json
-// @Param       limit query    string false "每页条数，默认20，最大100"
-// @Param       page  query    string false "页数，默认0"
+// @Param       id   path     string true "设备id"
+// @Param       pwd  formData string false "设备密码(GB28181认证密码)"
+// @Param       name formData string false "设备名称"
 // @Success     0    {object} sipapi.Devices
 // @Failure     1000 {object} string
 // @Failure     1001 {object} string
 // @Failure     1002 {object} string
 // @Failure     1003 {object} string
-// @Router      /devices [get]
-func DevicesList(c *gin.Context) {
-	pwd := c.PostForm("pwd")
-	if pwd == "" {
-		m.JsonResponse(c, m.StatusParamsERR, "密码不能为空")
+// @Router      /devices/{id} [post]
+func DevicesUpdate(c *gin.Context) {
+	deviceid := c.Param("id")
+
+	device := &sipapi.Devices{
+		DeviceID: deviceid,
+	}
+	if err := db.Get(db.DBClient, device); err != nil {
+		if db.RecordNotFound(err) {
+			m.JsonResponse(c, m.StatusParamsERR, "设备id不存在")
+			return
+		}
+		m.JsonResponse(c, m.StatusDBERR, err)
 		return
 	}
-	name := c.PostForm("name")
-	device := sipapi.Devices{
-		DeviceID: fmt.Sprintf("%s%06d", m.MConfig.GB28181.DID, m.MConfig.GB28181.DNUM+1),
-		Region:   m.MConfig.GB28181.Region,
-		PWD:      pwd,
-		Name:     name,
+
+	pwd := c.PostForm("pwd")
+	if pwd != "" {
+		device.PWD = pwd
 	}
-	if device.Name == "" {
-		device.Name = device.DeviceID
+	name := c.PostForm("name")
+	if name != "" {
+		device.Name = name
+	}
+	if err := db.Save(db.DBClient, device); err != nil {
+		m.JsonResponse(c, m.StatusDBERR, err)
+		return
+	}
+	m.JsonResponse(c, m.StatusSucc, device)
+}
+
+type DevicesListResponse struct {
+	Total int64
+	List  []sipapi.Devices
+}
+
+// @Summary     设备列表接口
+// @Description 可以根据查询条件查询设备列表
+// @Tags        devices
+// @Accept      x-www-form-urlencoded
+// @Produce     json
+// @Param       limit   query    integer false "条数(0-100) 默认20"
+// @Param       skip    query    integer false "间隔 默认0"
+// @Param       sort    query    string  false "排序,例:-key,根据key倒序,key,根据key正序"
+// @Param       filters query    string  false "查询条件,使用规则详情请看帮助"
+// @Success     0       {object} DevicesListResponse
+// @Failure     1000    {object} string
+// @Failure     1001    {object} string
+// @Failure     1002    {object} string
+// @Failure     1003    {object} string
+// @Router      /devices [get]
+func DevicesList(c *gin.Context) {
+	limit := m.GetLimit(c)
+	skip := m.GetSkip(c)
+	sort := m.GetSort(c)
+	devices := []sipapi.Devices{}
+	total, err := db.FindWithJson(db.DBClient, new(sipapi.Devices), &devices, c.Query("filters"), sort, skip, limit, true)
+	if err != nil {
+		m.JsonResponse(c, m.StatusDBERR, err)
+		return
+	}
+	m.JsonResponse(c, m.StatusSucc, DevicesListResponse{
+		Total: total,
+		List:  devices,
+	})
+}
+
+// @Summary     设备删除接口
+// @Description 删除设备信息
+// @Tags        devices
+// @Accept      x-www-form-urlencoded
+// @Produce     json
+// @Param       id   path     string true  "设备id"
+// @Success     0    {object} string
+// @Failure     1000 {object} string
+// @Failure     1001 {object} string
+// @Failure     1002 {object} string
+// @Failure     1003 {object} string
+// @Router      /devices/{id} [delete]
+func DevicesDelete(c *gin.Context) {
+	deviceid := c.Param("id")
+
+	device := &sipapi.Devices{
+		DeviceID: deviceid,
+	}
+	if err := db.Get(db.DBClient, device); err != nil {
+		if db.RecordNotFound(err) {
+			m.JsonResponse(c, m.StatusParamsERR, "设备id不存在")
+			return
+		}
+		m.JsonResponse(c, m.StatusDBERR, err)
+		return
 	}
 	tx, err := db.NewTx(db.DBClient)
 	if err != nil {
@@ -95,266 +172,18 @@ func DevicesList(c *gin.Context) {
 		return
 	}
 	defer tx.End()
-	if err := db.Create(tx.DB(), &device); err != nil {
+	if err := db.Del(tx.DB(), device); err != nil {
 		m.JsonResponse(c, m.StatusDBERR, err)
 		return
 	}
-	if _, err := db.UpdateAll(tx.DB(), new(m.SysInfo), db.M{}, db.M{"dnum": gorm.Expr("dnum+1")}); err != nil {
+	// 删除设备，同时删除设备下的所有通道
+	if err := db.Del(tx.DB(), &sipapi.Channels{DeviceID: deviceid}); err != nil {
 		m.JsonResponse(c, m.StatusDBERR, err)
 		return
 	}
 	tx.Commit()
-	m.MConfig.GB28181.DNUM += 1
-
-	device.Sys = *m.MConfig.GB28181
-	m.JsonResponse(c, m.StatusSucc, device)
+	m.JsonResponse(c, m.StatusSucc, "")
 }
-
-// func apiAuthCheck(h httprouter.Handle, requiredPassword string) httprouter.Handle {
-// 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-// 		// Get the Basic Authentication credentials
-// 		if ok, msg := checkSign(r.RequestURI, requiredPassword, r.Form); ok {
-// 			// Delegate request to the given handle
-// 			h(w, r, ps)
-// 		} else {
-// 			// Request Basic Authentication otherwise
-// 			_apiResponse(w, statusAuthERR, msg)
-// 		}
-// 	}
-// }
-
-// type apiResponse struct {
-// 	C  string      `json:"code"`
-// 	D  interface{} `json:"data"`
-// 	T  int64       `json:"time"`
-// 	ID string      `json:"id"`
-// }
-
-// func _apiResponse(w http.ResponseWriter, code string, data interface{}) {
-// 	w.WriteHeader(code2code[code])
-// 	w.Header().Add("Content-Type", "application/json")
-// 	_, err := w.Write(utils.JSONEncode(apiResponse{
-// 		code, data, time.Now().Unix(), utils.RandString(16),
-// 	}))
-// 	if err != nil {
-// 		logrus.Errorln("send response api fail.", err)
-// 	}
-// }
-
-// // 注册NVR用户设备
-// func apiNewUsers(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
-// }
-
-// // 更新NVR用户设备
-// func apiUpdateUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-// 	id := ps.ByName("id")
-// 	if id == "" {
-// 		_apiResponse(w, statusParamsERR, "缺少用户设备ID")
-// 		return
-// 	}
-// 	user := NVRDevices{}
-// 	err := dbClient.Get(userTB, M{"deviceid": id}, &user)
-// 	if err != nil {
-// 		if err == mongo.ErrNoDocuments {
-// 			_apiResponse(w, statusParamsERR, "用户设备不存在")
-// 			return
-// 		}
-// 		_apiResponse(w, statusDBERR, err)
-// 		return
-// 	}
-// 	pwd := r.URL.Query().Get("pwd")
-// 	if pwd == "" {
-// 		_apiResponse(w, statusParamsERR, "密码不能为空")
-// 		return
-// 	}
-// 	update := M{}
-// 	if pwd != user.PWD {
-// 		update["pwd"] = pwd
-// 		user.PWD = pwd
-// 	}
-// 	name := r.URL.Query().Get("name")
-// 	if name != user.Name {
-// 		update["name"] = name
-// 		user.Name = name
-// 	}
-// 	err = dbClient.Update(userTB, M{"deviceid": user.DeviceID}, M{"$set": update})
-// 	if err != nil {
-// 		_apiResponse(w, statusDBERR, err)
-// 		return
-// 	}
-// 	_apiResponse(w, statusSucc, user)
-// }
-
-// // 删除NVR用户设备，同时会删除所有归属的通道设备
-// func apiDelUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-// 	id := ps.ByName("id")
-// 	if id == "" {
-// 		_apiResponse(w, statusParamsERR, "缺少用户设备ID")
-// 		return
-// 	}
-// 	user := NVRDevices{}
-// 	err := dbClient.Get(userTB, M{"deviceid": id}, &user)
-// 	if err != nil {
-// 		if err == mongo.ErrNoDocuments {
-// 			_apiResponse(w, statusParamsERR, "用户设备不存在")
-// 			return
-// 		}
-// 		_apiResponse(w, statusDBERR, err)
-// 		return
-// 	}
-// 	dbClient.DelMany(deviceTB, M{"pdid": user.DeviceID})
-// 	dbClient.Del(userTB, M{"deviceid": user.DeviceID})
-// 	_apiResponse(w, statusSucc, "")
-// }
-
-// // 注册通道设备
-// func apiNewDevices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-//
-// }
-
-// // 删除通道设备
-// func apiDelDevices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-// 	id := ps.ByName("id")
-// 	if id == "" {
-// 		_apiResponse(w, statusParamsERR, "缺少监控设备ID")
-// 		return
-// 	}
-// 	user := Devices{}
-// 	err := dbClient.Get(deviceTB, M{"deviceid": id}, &user)
-// 	if err != nil {
-// 		if err == mongo.ErrNoDocuments {
-// 			_apiResponse(w, statusParamsERR, "监控设备不存在")
-// 			return
-// 		}
-// 		_apiResponse(w, statusDBERR, err)
-// 		return
-// 	}
-// 	dbClient.Del(deviceTB, M{"deviceid": user.DeviceID})
-// 	_apiResponse(w, statusSucc, "")
-// }
-
-// // 直播 同一通道设备公用一个直播流
-// func apiPlay(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-// 	deviceid := ps.ByName("id")
-// 	d := playParams{S: time.Time{}, E: time.Time{}, DeviceID: deviceid}
-// 	params := r.URL.Query()
-// 	if params.Get("t") == "1" {
-// 		d.T = 1
-// 		s, _ := strconv.ParseInt(params.Get("start"), 10, 64)
-// 		if s == 0 {
-// 			_apiResponse(w, statusParamsERR, "开始时间错误")
-// 			return
-// 		}
-// 		d.S = time.Unix(s, 0)
-// 		e, _ := strconv.ParseInt(params.Get("end"), 10, 64)
-// 		d.E = time.Unix(e, 0)
-// 	} else {
-// 		// 直播的判断当前是否存在播放
-// 		if succ, ok := _playList.devicesSucc.Load(deviceid); ok {
-// 			_apiResponse(w, statusSucc, succ)
-// 			return
-// 		}
-// 	}
-// 	res := sipPlay(d)
-// 	switch res.(type) {
-// 	case error, string:
-// 		_apiResponse(w, statusParamsERR, res)
-// 		return
-// 	default:
-// 		_apiResponse(w, statusSucc, res)
-// 		return
-// 	}
-// }
-
-// // 重播，每个重播请求都会生成一个新直播流
-// func apiReplay(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-// 	r.URL.RawQuery = r.URL.RawQuery + "&t=1"
-// 	apiPlay(w, r, ps)
-// }
-
-// // 停止播放（直播/重播）
-// func apiStopPlay(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-// 	id := ps.ByName("id")
-// 	if _, ok := _playList.ssrcResponse.Load(id); !ok {
-// 		_apiResponse(w, statusSucc, "视频流不存在或已关闭")
-// 		return
-// 	}
-// 	sipStopPlay(id)
-// 	logrus.Infoln("closeStream apiStopPlay", id)
-// 	_apiResponse(w, statusSucc, "")
-// }
-
-// // 获取录像文件列表
-// func apiFileList(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-// 	id := ps.ByName("id")
-// 	device := Devices{}
-// 	if err := dbClient.Get(deviceTB, M{"deviceid": id}, &device); err != nil {
-// 		if err == mongo.ErrNoDocuments {
-// 			_apiResponse(w, statusParamsERR, "监控设备不存在")
-// 			return
-// 		}
-// 		_apiResponse(w, statusDBERR, err)
-// 		return
-// 	}
-// 	if time.Now().Unix()-device.Active > 30*60 {
-// 		_apiResponse(w, statusParamsERR, "监控设备已掉线")
-// 		return
-// 	}
-// 	params := r.URL.Query()
-// 	start, _ := strconv.ParseInt(params.Get("start"), 10, 64)
-// 	if start == 0 {
-// 		_apiResponse(w, statusParamsERR, "开始时间错误")
-// 		return
-// 	}
-// 	end, _ := strconv.ParseInt(params.Get("end"), 10, 64)
-// 	if end == 0 {
-// 		_apiResponse(w, statusParamsERR, "结束时间错误")
-// 		return
-// 	}
-// 	if start >= end {
-// 		_apiResponse(w, statusParamsERR, "开始时间不能小于结束时间")
-// 		return
-// 	}
-// 	user := NVRDevices{}
-// 	user, ok := _activeDevices.Get(device.PDID)
-// 	if !ok {
-// 		_apiResponse(w, statusParamsERR, "用户设备已掉线")
-// 		return
-// 	}
-// 	for {
-// 		if _, ok := _recordList.Load(device.DeviceID); ok {
-// 			time.Sleep(1 * time.Second)
-// 		} else {
-// 			break
-// 		}
-// 	}
-
-// 	user.DeviceID = device.DeviceID
-// 	deviceURI, _ := sip.ParseURI(device.URIStr)
-// 	user.addr = &sip.Address{URI: deviceURI}
-// 	resp := make(chan interface{}, 1)
-// 	defer close(resp)
-// 	_recordList.Store(user.DeviceID, recordList{deviceid: user.DeviceID, resp: resp, data: [][]int64{}, l: &sync.Mutex{}, s: start, e: end})
-// 	defer _recordList.Delete(user.DeviceID)
-// 	err := sipRecordList(user, start, end)
-// 	if err != nil {
-// 		_apiResponse(w, statusParamsERR, "监控设备返回错误"+err.Error())
-// 		return
-// 	}
-// 	select {
-// 	case res := <-resp:
-// 		_apiResponse(w, statusSucc, res)
-// 	case <-time.Tick(10 * time.Second):
-// 		// 10秒未完成返回当前获取到的数据
-// 		if list, ok := _recordList.Load(user.DeviceID); ok {
-// 			info := list.(recordList)
-// 			_apiResponse(w, statusSucc, transRecordList(info.data))
-// 			return
-// 		}
-// 		_apiResponse(w, statusSysERR, "获取超时")
-// 	}
-// }
 
 // // 视频流录制 默认保存为mp4文件，录制最多录制10分钟，10分钟后自动停止，一个流只能存在一个录制
 // func apiRecordStart(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {

@@ -15,16 +15,26 @@ func Init(r *gin.Engine) {
 	{
 		r.GET("/devices", api.DevicesList)
 		r.POST("/devices", api.DevicesCreate)
+		r.POST("/devices/:id", api.DevicesUpdate)
+		r.DELETE("/devices/:id", api.DevicesDelete)
+
 	}
 	// 通道类接口
 	{
+		r.GET("/channels", api.ChannelsList)
 		r.POST("/devices/:id/channels", api.ChannelCreate)
+		r.POST("/channels/:id", api.ChannelsUpdate)
+		r.DELETE("/channels/:id", api.ChannelsDelete)
 	}
 	// 播放类接口
 	{
+		r.GET("/streams", api.StreamsList)
 		r.POST("/channels/:id/streams", api.Play)
 		r.DELETE("/streams/:id", api.Stop)
-
+	}
+	// 录像类
+	{
+		r.GET("/channels/:id/records", api.RecordsList)
 	}
 	// zlm webhook
 	{

@@ -2,25 +2,17 @@ package api
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/panjjo/gosip/db"
 	"github.com/panjjo/gosip/m"
 	sipapi "github.com/panjjo/gosip/sip"
 	"github.com/panjjo/gosip/utils"
 	"github.com/sirupsen/logrus"
 )
-
-type mediaRequest struct {
-	APP    string `json:"app"`
-	Params string `json:"params"`
-	Stream string `json:"stream"`
-	Schema string `json:"schema"`
-	URL    string `json:"url"`
-	Regist bool   `json:"regist"`
-}
 
 func ZLMWebHook(c *gin.Context) {
 	method := c.Param("method")
@@ -28,23 +20,23 @@ func ZLMWebHook(c *gin.Context) {
 	case "on_server_started":
 		// zlm 启动，具体业务自行实现
 		m.MConfig.GB28181.MediaServer = true
-		c.JSON(http.StatusOK, map[string]interface{}{
+		c.JSON(http.StatusOK, map[string]any{
 			"code": 0,
 			"msg":  "success"})
 	case "on_http_access":
 		// http请求鉴权，具体业务自行实现
-		c.JSON(http.StatusOK, map[string]interface{}{
+		c.JSON(http.StatusOK, map[string]any{
 			"code":   0,
 			"second": 86400})
 	case "on_play":
 		//视频播放触发鉴权
-		c.JSON(http.StatusOK, map[string]interface{}{
+		c.JSON(http.StatusOK, map[string]any{
 			"code": 0,
 			"msg":  "",
 		})
 	case "on_publish":
 		// 推流鉴权
-		c.JSON(http.StatusOK, map[string]interface{}{
+		c.JSON(http.StatusOK, map[string]any{
 			"code":       0,
 			"enableHls":  m.MConfig.Stream.HLS,
 			"enableMP4":  false,
@@ -64,7 +56,7 @@ func ZLMWebHook(c *gin.Context) {
 		// 流注册和注销通知
 		zlmStreamChanged(c)
 	default:
-		c.JSON(http.StatusOK, map[string]interface{}{
+		c.JSON(http.StatusOK, map[string]any{
 			"code": -1,
 			"msg":  "body error",
 		})
@@ -82,9 +74,9 @@ type ZLMStreamChangedData struct {
 func zlmStreamChanged(c *gin.Context) {
 	body := c.Request.Body
 	defer body.Close()
-	data, err := ioutil.ReadAll(body)
+	data, err := io.ReadAll(body)
 	if err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
+		c.JSON(http.StatusOK, map[string]any{
 			"code": -1,
 			"msg":  "body error",
 		})
@@ -92,7 +84,7 @@ func zlmStreamChanged(c *gin.Context) {
 	}
 	req := &ZLMStreamChangedData{}
 	if err := utils.JSONDecode(data, &req); err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
+		c.JSON(http.StatusOK, map[string]any{
 			"code": -1,
 			"msg":  "body error",
 		})
@@ -104,9 +96,10 @@ func zlmStreamChanged(c *gin.Context) {
 			d, ok := sipapi.StreamList.Response.Load(ssrc)
 			if ok {
 				// 接收到流注册事件，更新ssrc数据
-				params := d.(sipapi.PlayParams)
+				params := d.(*sipapi.Streams)
 				params.Stream = true
-				sipapi.StreamList.Response.Store(params.SSRC, params)
+				db.Save(db.DBClient, params)
+				sipapi.StreamList.Response.Store(ssrc, params)
 				// 接收到流注册后进行视频流编码分析，分析出此设备对应的编码格式并保存或更新
 				sipapi.SyncDevicesCodec(ssrc, params.DeviceID)
 			} else {
@@ -126,7 +119,7 @@ func zlmStreamChanged(c *gin.Context) {
 			}
 		}
 	}
-	c.JSON(http.StatusOK, map[string]interface{}{
+	c.JSON(http.StatusOK, map[string]any{
 		"code": 0,
 		"msg":  "success"})
 }
@@ -146,9 +139,9 @@ type ZLMRecordMp4Data struct {
 func zlmRecordMp4(c *gin.Context) {
 	body := c.Request.Body
 	defer body.Close()
-	data, err := ioutil.ReadAll(body)
+	data, err := io.ReadAll(body)
 	if err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
+		c.JSON(http.StatusOK, map[string]any{
 			"code": -1,
 			"msg":  "body error",
 		})
@@ -156,7 +149,7 @@ func zlmRecordMp4(c *gin.Context) {
 	}
 	req := &ZLMRecordMp4Data{}
 	if err := utils.JSONDecode(data, &req); err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
+		c.JSON(http.StatusOK, map[string]any{
 			"code": -1,
 			"msg":  "body error",
 		})
@@ -167,7 +160,7 @@ func zlmRecordMp4(c *gin.Context) {
 		item.Down(req.URL)
 		item.Resp(fmt.Sprintf("%s/%s", m.MConfig.Media.HTTP, req.URL))
 	}
-	c.JSON(http.StatusOK, map[string]interface{}{
+	c.JSON(http.StatusOK, map[string]any{
 		"code": 0,
 		"msg":  "success"})
 }
@@ -185,9 +178,9 @@ type ZLMStreamNotFoundData struct {
 func zlmStreamNotFound(c *gin.Context) {
 	body := c.Request.Body
 	defer body.Close()
-	data, err := ioutil.ReadAll(body)
+	data, err := io.ReadAll(body)
 	if err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
+		c.JSON(http.StatusOK, map[string]any{
 			"code": -1,
 			"msg":  "body error",
 		})
@@ -195,7 +188,7 @@ func zlmStreamNotFound(c *gin.Context) {
 	}
 	req := &ZLMStreamNotFoundData{}
 	if err := utils.JSONDecode(data, &req); err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
+		c.JSON(http.StatusOK, map[string]any{
 			"code": -1,
 			"msg":  "body error",
 		})
@@ -203,7 +196,7 @@ func zlmStreamNotFound(c *gin.Context) {
 	}
 	ssrc := req.Stream
 	if d, ok := sipapi.StreamList.Response.Load(ssrc); ok {
-		params := d.(sipapi.PlayParams)
+		params := d.(*sipapi.Streams)
 		if params.Stream {
 			if params.StreamType == m.StreamTypePush {
 				// 存在推流记录关闭当前，重新发起推流
@@ -222,7 +215,7 @@ func zlmStreamNotFound(c *gin.Context) {
 			}
 		}
 	}
-	c.JSON(http.StatusOK, map[string]interface{}{
+	c.JSON(http.StatusOK, map[string]any{
 		"code": 0,
 		"msg":  "success",
 	})
@@ -237,9 +230,9 @@ type ZLMStreamNoneReaderData struct {
 func zlmStreamNoneReader(c *gin.Context) {
 	body := c.Request.Body
 	defer body.Close()
-	data, err := ioutil.ReadAll(body)
+	data, err := io.ReadAll(body)
 	if err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
+		c.JSON(http.StatusOK, map[string]any{
 			"code": -1,
 			"msg":  "body error",
 		})
@@ -247,14 +240,14 @@ func zlmStreamNoneReader(c *gin.Context) {
 	}
 	req := &ZLMStreamNoneReaderData{}
 	if err := utils.JSONDecode(data, &req); err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
+		c.JSON(http.StatusOK, map[string]any{
 			"code": -1,
 			"msg":  "body error",
 		})
 		return
 	}
 	sipapi.SipStopPlay(req.Stream)
-	c.JSON(http.StatusOK, map[string]interface{}{
+	c.JSON(http.StatusOK, map[string]any{
 		"code":  0,
 		"close": true,
 	})

@@ -23,40 +23,40 @@ var (
 type Devices struct {
 	db.DBModel
 	// Name 设备名称
-	Name string `json:"name"`
+	Name string `json:"name" gorm:"column:name" `
 	// DeviceID 设备id
-	DeviceID string `json:"deviceid" gorm:"primaryKey;autoIncrement:false"`
+	DeviceID string `json:"deviceid" gorm:"column:deviceid"`
 	// Region 设备域
-	Region string `json:"region" `
+	Region string `json:"region" gorm:"column:region"`
 	// Host Via 地址
-	Host string `json:"host"`
+	Host string `json:"host" gorm:"column:host"`
 	// Port via 端口
-	Port string `json:"port" `
+	Port string `json:"port" gorm:"column:port"`
 	// TransPort via transport
-	TransPort string `json:"transport"`
+	TransPort string `json:"transport" gorm:"column:transport"`
 	// Proto 协议
-	Proto string `json:"proto"`
+	Proto string `json:"proto" gorm:"column:proto"`
 	// Rport via rport
-	Rport string `json:"report"`
+	Rport string `json:"report" gorm:"column:report"`
 	// RAddr via recevied
-	RAddr string `json:"raddr" `
+	RAddr string `json:"raddr"  gorm:"column:raddr"`
 	// Manufacturer 制造厂商
-	Manufacturer string `xml:"Manufacturer"  json:"manufacturer"`
+	Manufacturer string `xml:"Manufacturer"  json:"manufacturer"  gorm:"column:manufacturer"`
 	// 设备类型DVR，NVR
-	DeviceType string `xml:"DeviceType"  json:"devicetype"`
+	DeviceType string `xml:"DeviceType"  json:"devicetype"  gorm:"column:devicetype"`
 	// Firmware 固件版本
-	Firmware string ` json:"firmware"`
+	Firmware string ` json:"firmware"  gorm:"column:firmware"`
 	// Model 型号
-	Model  string `json:"model"`
-	URIStr string `json:"uri" `
+	Model  string `json:"model"  gorm:"column:model"`
+	URIStr string `json:"uri"  gorm:"column:uri"`
 	// ActiveAt 最后心跳检测时间
-	ActiveAt int64 `json:"active"`
+	ActiveAt int64 `json:"active" gorm:"column:active"`
 	// Regist 是否注册
-	Regist bool `json:"regist" `
+	Regist bool `json:"regist"  gorm:"column:regist"`
 	// PWD 密码
-	PWD string `json:"pwd"`
+	PWD string `json:"pwd" gorm:"column:pwd"`
 	// Source
-	Source string `json:"source" `
+	Source string `json:"source"  gorm:"column:source"`
 
 	Sys m.SysInfo `json:"sysinfo" gorm:"-"`
 
@@ -69,37 +69,41 @@ type Devices struct {
 type Channels struct {
 	db.DBModel
 	// ChannelID 通道编码
-	ChannelID string `xml:"DeviceID" json:"channelid" gorm:"primaryKey;autoIncrement:false"`
+	ChannelID string `xml:"DeviceID" json:"channelid" gorm:"column:channelid"`
 	// DeviceID 设备编号
-	DeviceID string `xml:"-" json:"deviceid"`
+	DeviceID string `xml:"-" json:"deviceid"  gorm:"column:deviceid"`
 	// Memo 备注（用来标示通道信息）
-	MeMo string `json:"memo"`
-	// Name 通道名称（摄像头设置名称）
-	Name         string `xml:"Name" bson:"name" json:"name"`
-	Manufacturer string `xml:"Manufacturer" bson:"manufacturer" json:"manufacturer"`
-	Model        string `xml:"Model" bson:"model" json:"model"`
-	Owner        string `xml:"Owner" bson:"owner" json:"owner"`
-	CivilCode    string `xml:"CivilCode" bson:"civilcode" json:"civilcode"`
+	MeMo string `json:"memo"  gorm:"column:memo"`
+	// Name 通道名称（设备端设置名称）
+	Name         string `xml:"Name" json:"name"  gorm:"column:name"`
+	Manufacturer string `xml:"Manufacturer" json:"manufacturer"  gorm:"column:manufacturer"`
+	Model        string `xml:"Model" json:"model"  gorm:"column:model"`
+	Owner        string `xml:"Owner"  json:"owner"  gorm:"column:owner"`
+	CivilCode    string `xml:"CivilCode" json:"civilcode"  gorm:"column:civilcode"`
 	// Address ip地址
-	Address     string `xml:"Address" bson:"address" json:"address"`
-	Parental    int    `xml:"Parental" bson:"parental" json:"parental"`
-	SafetyWay   int    `xml:"SafetyWay" bson:"safetyway" json:"safetyway"`
-	RegisterWay int    `xml:"RegisterWay" bson:"registerway" json:"registerway"`
-	Secrecy     int    `xml:"Secrecy" bson:"secrecy" json:"secrecy"`
+	Address     string `xml:"Address"  json:"address"  gorm:"column:address"`
+	Parental    int    `xml:"Parental"  json:"parental"  gorm:"column:parental"`
+	SafetyWay   int    `xml:"SafetyWay"  json:"safetyway"  gorm:"column:safetyway"`
+	RegisterWay int    `xml:"RegisterWay"  json:"registerway"  gorm:"column:registerway"`
+	Secrecy     int    `xml:"Secrecy" json:"secrecy"  gorm:"column:secrecy"`
 	// Status 状态  on 在线
-	Status string `xml:"Status" bson:"status" json:"status"`
+	Status string `xml:"Status"  json:"status"  gorm:"column:status"`
 	// Active 最后活跃时间
-	Active int64  `bson:"active" json:"active"`
-	URIStr string `bson:"uri" json:"uri"`
+	Active int64  `json:"active"  gorm:"column:active"`
+	URIStr string ` json:"uri"  gorm:"column:uri"`
 
 	// 视频编码格式
-	VF string `bson:"vf" json:"vf"`
+	VF string ` json:"vf"  gorm:"column:vf"`
 	// 视频高
-	Height int `json:"height"`
+	Height int `json:"height"  gorm:"column:height"`
 	// 视频宽
-	Width int `json:"width"`
+	Width int `json:"width"  gorm:"column:width"`
 	// 视频FPS
-	FPS int `json:"fps"`
+	FPS int `json:"fps"  gorm:"column:fps"`
+	//  pull 媒体服务器主动拉流，push 监控设备主动推流
+	StreamType string `json:"streamtype"  gorm:"column:streamtype"`
+	// streamtype=pull时，拉流地址
+	URL string `json:"url"  gorm:"column:url"`
 
 	addr *sip.Address `gorm:"-"`
 }
@@ -235,7 +239,7 @@ func sipMessageDeviceInfo(u Devices, body []byte) error {
 		logrus.Errorln("sipMessageDeviceInfo Unmarshal xml err:", err, "body:", body)
 		return err
 	}
-	db.UpdateAll(db.DBClient, new(Devices), db.M{"device_id=?": u.DeviceID}, Devices{
+	db.UpdateAll(db.DBClient, new(Devices), db.M{"deviceid=?": u.DeviceID}, Devices{
 		Model:        message.Model,
 		DeviceType:   message.DeviceType,
 		Firmware:     message.Firmware,
@@ -264,14 +268,22 @@ func sipMessageCatalog(u Devices, body []byte) error {
 		for _, d := range message.Item {
 			channel := Channels{ChannelID: d.ChannelID, DeviceID: message.DeviceID}
 			if err := db.Get(db.DBClient, &channel); err == nil {
-				d.DeviceID = channel.DeviceID
-				d.Active = time.Now().Unix()
-				d.URIStr = fmt.Sprintf("sip:%s@%s", d.ChannelID, _sysinfo.Region)
-				d.Status = transDeviceStatus(d.Status)
-				d.ID = channel.ID
-				d.MeMo = channel.MeMo
-				db.Save(db.DBClient, &d)
-				go notify(notifyChannelsActive(d))
+				channel.Active = time.Now().Unix()
+				channel.URIStr = fmt.Sprintf("sip:%s@%s", d.ChannelID, _sysinfo.Region)
+				channel.Status = transDeviceStatus(d.Status)
+				channel.Name = d.Name
+				channel.Manufacturer = d.Manufacturer
+				channel.Model = d.Model
+				channel.Owner = d.Owner
+				channel.CivilCode = d.CivilCode
+				// Address ip地址
+				channel.Address = d.Address
+				channel.Parental = d.Parental
+				channel.SafetyWay = d.SafetyWay
+				channel.RegisterWay = d.RegisterWay
+				channel.Secrecy = d.Secrecy
+				db.Save(db.DBClient, &channel)
+				go notify(notifyChannelsActive(channel))
 			} else {
 				logrus.Infoln("deviceid not found,deviceid:", d.DeviceID, "pdid:", message.DeviceID, "err", err)
 			}
@@ -281,11 +293,11 @@ func sipMessageCatalog(u Devices, body []byte) error {
 }
 
 var deviceStatusMap = map[string]string{
-	"ON":     "ON",
-	"OK":     "ON",
-	"ONLINE": "ON",
-	"OFFILE": "OFF",
-	"OFF":    "OFF",
+	"ON":     m.DeviceStatusON,
+	"OK":     m.DeviceStatusON,
+	"ONLINE": m.DeviceStatusON,
+	"OFFILE": m.DeviceStatusOFF,
+	"OFF":    m.DeviceStatusOFF,
 }
 
 func transDeviceStatus(status string) string {

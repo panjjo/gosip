@@ -14,109 +14,68 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// PlayParams 播放请求参数
-type PlayParams struct {
-	// 0  直播 1 历史
-	T int
-	//  开始结束时间，只有t=1 时有效
-	S, E       time.Time
-	SSRC       string
-	Resp       *sip.Response
-	DeviceID   string
-	ChannelID  string
-	Url        string
-	Ext        int64  // 推流等待的过期时间，用于判断是否请求成功但推流失败。超过还未接收到推流定义为失败，重新请求推流或者关闭此ssrc
-	Stream     bool   // 是否完成推流，用于web_hook 出现stream=false时等待推流，出现stream_not_found 且 stream=true表示推流过但已关闭。释放ssrc。
-	StreamType string //  pull 媒体服务器主动拉流，push 监控设备主动推流 proxy 代理
-}
-
-type Play struct {
-	// 通道ID
-	ChannelID string `json:"channelid"`
-	// 视频流ID
-	StreamID string `json:"streamid"`
-	// 流标示
-	SSRC string `json:"ssrc"`
-	// m3u8播放地址
-	HTTP string `json:"http"`
-	// rtmp 播放地址
-	RTMP string `json:"rtmp"`
-	// rtsp 播放地址
-	RTSP string `json:"rtsp"`
-	// flv 播放地址
-	WSFLV string `json:"ws-flv"`
-}
-
 // sip 请求播放
-func SipPlay(data PlayParams) (*Play, error) {
-	var succ *Play
-	switch data.StreamType {
-	case m.StreamTypeProxy:
-		_, err := zlmAddStreamProxy(data.Url, data.ChannelID)
-		if err != nil {
-			return nil, err
-		}
-		succ = &Play{
-			ChannelID: data.ChannelID,
-			StreamID:  data.SSRC,
-			SSRC:      data.SSRC,
-			HTTP:      fmt.Sprintf("%s/rtp/%s/hls.m3u8", config.Media.HTTP, data.SSRC),
-			RTMP:      fmt.Sprintf("%s/rtp/%s", config.Media.RTMP, data.SSRC),
-			RTSP:      fmt.Sprintf("%s/rtp/%s", config.Media.RTSP, data.SSRC),
-			WSFLV:     fmt.Sprintf("%s/rtp/%s.live.flv", config.Media.WS, data.SSRC),
-		}
-	default:
-		channels := Channels{ChannelID: data.ChannelID}
-		if err := db.Get(db.DBClient, &channels); err != nil {
-			if db.RecordNotFound(err) {
-				return nil, errors.New("通道不存在")
-			}
-			return nil, err
-		}
+func SipPlay(data *Streams) (*Streams, error) {
 
-		if time.Now().Unix()-channels.Active > 30*60 {
+	channel := Channels{ChannelID: data.ChannelID}
+	if err := db.Get(db.DBClient, &channel); err != nil {
+		if db.RecordNotFound(err) {
+			return nil, errors.New("通道不存在")
+		}
+		return nil, err
+	}
+
+	data.DeviceID = channel.DeviceID
+	data.StreamType = channel.StreamType
+	// 使用通道的播放模式进行处理
+	switch channel.StreamType {
+	case m.StreamTypePull:
+		// 拉流
+
+	default:
+		// 推流模式要求设备在线且活跃
+		if time.Now().Unix()-channel.Active > 30*60 || channel.Status != m.DeviceStatusON {
 			return nil, errors.New("通道已离线")
 		}
-		device := Devices{DeviceID: channels.DeviceID}
-		if err := db.Get(db.DBClient, &device); err != nil {
-			if db.RecordNotFound(err) {
-				return nil, errors.New("设备不存在")
-			}
-			return nil, err
-		}
-
-		user, ok := _activeDevices.Get(device.DeviceID)
+		user, ok := _activeDevices.Get(channel.DeviceID)
 		if !ok {
 			return nil, errors.New("设备已离线")
 		}
-		data.DeviceID = user.DeviceID
+		// GB28181推流
+		if data.StreamID == "" {
+			ssrcLock.Lock()
+			data.ssrc = getSSRC(data.T)
+			data.StreamID = ssrc2stream(data.ssrc)
+
+			// 成功后保存
+			db.Create(db.DBClient, data)
+			ssrcLock.Unlock()
+		}
+
 		var err error
-		data, err = sipPlayPush(data, channels, user)
+		data, err = sipPlayPush(data, channel, user)
 		if err != nil {
 			return nil, fmt.Errorf("获取视频失败:%v", err)
 		}
-		succ = &Play{
-			ChannelID: data.ChannelID,
-			SSRC:      data.SSRC,
-			StreamID:  data.SSRC,
-			HTTP:      fmt.Sprintf("%s/rtp/%s/hls.m3u8", config.Media.HTTP, data.SSRC),
-			RTMP:      fmt.Sprintf("%s/rtp/%s", config.Media.RTMP, data.SSRC),
-			RTSP:      fmt.Sprintf("%s/rtp/%s", config.Media.RTSP, data.SSRC),
-			WSFLV:     fmt.Sprintf("%s/rtp/%s.live.flv", config.Media.WS, data.SSRC),
-		}
 	}
 
+	data.HTTP = fmt.Sprintf("%s/rtp/%s/hls.m3u8", config.Media.HTTP, data.StreamID)
+	data.RTMP = fmt.Sprintf("%s/rtp/%s", config.Media.RTMP, data.StreamID)
+	data.RTSP = fmt.Sprintf("%s/rtp/%s", config.Media.RTSP, data.StreamID)
+	data.WSFLV = fmt.Sprintf("%s/rtp/%s.live.flv", config.Media.WS, data.StreamID)
+
 	data.Ext = time.Now().Unix() + 2*60 // 2分钟等待时间
-	StreamList.Response.Store(data.SSRC, data)
+	StreamList.Response.Store(data.StreamID, data)
 	if data.T == 0 {
-		StreamList.Succ.Store(data.ChannelID, succ)
+		StreamList.Succ.Store(data.ChannelID, data)
 	}
-	return succ, nil
+	db.Save(db.DBClient, data)
+	return data, nil
 }
 
 var ssrcLock *sync.Mutex
 
-func sipPlayPush(data PlayParams, channel Channels, device Devices) (PlayParams, error) {
+func sipPlayPush(data *Streams, channel Channels, device Devices) (*Streams, error) {
 	var (
 		s sdp.Session
 		b []byte
@@ -127,21 +86,7 @@ func sipPlayPush(data PlayParams, channel Channels, device Devices) (PlayParams,
 		name = "Playback"
 		protocal = "RTP/RTCP"
 	}
-	if data.SSRC == "" {
-		ssrcLock.Lock()
-		data.SSRC = getSSRC(data.T)
-		// 成功后保存mongo，用来后续系统关闭推流使用
-		db.Create(db.DBClient, &Streams{
-			T:          data.T,
-			SSRC:       ssrc2stream(data.SSRC),
-			ChannelID:  channel.ChannelID,
-			DeviceID:   channel.DeviceID,
-			StreamType: m.StreamTypePush, //  pull 媒体服务器主动拉流，push 监控设备主动推流
-			Status:     -1,
-			Time:       time.Now().Format("2006-01-02 15:04:05"),
-		})
-		ssrcLock.Unlock()
-	}
+
 	video := sdp.Media{
 		Description: sdp.MediaDescription{
 			Type:     "video",
@@ -177,7 +122,7 @@ func sipPlayPush(data PlayParams, channel Channels, device Devices) (PlayParams,
 			},
 		},
 		Medias: []sdp.Media{video},
-		SSRC:   data.SSRC,
+		SSRC:   data.ssrc,
 	}
 	if data.T == 1 {
 		msg.URI = fmt.Sprintf("%s:0", channel.ChannelID)
@@ -195,7 +140,7 @@ func sipPlayPush(data PlayParams, channel Channels, device Devices) (PlayParams,
 	}).SetContentType(&sip.ContentTypeSDP).SetMethod(sip.INVITE).SetContact(_serverDevices.addr)
 	req := sip.NewRequest("", sip.INVITE, channel.addr.URI, sip.DefaultSipVersion, hb.Build(), b)
 	req.SetDestination(device.source)
-	req.AppendHeader(&sip.GenericHeader{HeaderName: "Subject", Contents: fmt.Sprintf("%s:%s,%s:%s", channel.ChannelID, data.SSRC, _serverDevices.DeviceID, data.SSRC)})
+	req.AppendHeader(&sip.GenericHeader{HeaderName: "Subject", Contents: fmt.Sprintf("%s:%s,%s:%s", channel.ChannelID, data.StreamID, _serverDevices.DeviceID, data.StreamID)})
 	req.SetRecipient(channel.addr.URI)
 	tx, err := srv.Request(req)
 	if err != nil {
@@ -211,35 +156,36 @@ func sipPlayPush(data PlayParams, channel Channels, device Devices) (PlayParams,
 	data.Resp = response
 	// ACK
 	tx.Request(sip.NewRequestFromResponse(sip.ACK, response))
-	data.SSRC = ssrc2stream(data.SSRC)
-	data.StreamType = m.StreamTypePush
-	from, _ := response.From()
-	to, _ := response.To()
+
 	callid, _ := response.CallID()
-	var cseqNo uint32
+	data.CallID = string(*callid)
+
 	cseq, _ := response.CSeq()
 	if cseq != nil {
-		cseqNo = cseq.SeqNo
+		data.CseqNo = cseq.SeqNo
 	}
-	toParams := db.M{}
+
+	from, _ := response.From()
+	to, _ := response.To()
 	for k, v := range to.Params.Items() {
-		toParams[k] = v.String()
+		data.Ttag[k] = v.String()
 	}
-	fromParams := db.M{}
 	for k, v := range from.Params.Items() {
-		fromParams[k] = v.String()
+		data.Ftag[k] = v.String()
 	}
-	db.UpdateAll(db.DBClient, new(Streams), db.M{"ssrc=?": data.SSRC, "stop=?": false}, db.M{"call_id": string(*callid), "ttag": toParams, "cseqno": cseqNo, "ftag": fromParams, "status": 0})
+	data.Status = 0
+
 	return data, err
 }
 
 // sip 停止播放
 func SipStopPlay(ssrc string) {
+	zlmCloseStream(ssrc)
 	data, ok := StreamList.Response.Load(ssrc)
 	if !ok {
 		return
 	}
-	play := data.(PlayParams)
+	play := data.(*Streams)
 	if play.StreamType == m.StreamTypePush {
 		// 推流，需要发送关闭请求
 		resp := play.Resp
@@ -257,14 +203,15 @@ func SipStopPlay(ssrc string) {
 		_, err = sipResponse(tx)
 		if err != nil {
 			logrus.Warnln("sipStopPlay response fail", err)
-			db.UpdateAll(db.DBClient, new(Streams), db.M{"ssrc=?": play.SSRC, "stop=?": false}, db.M{"err": err})
+			play.Msg = err.Error()
 		} else {
-			db.UpdateAll(db.DBClient, new(Streams), db.M{"ssrc=?": play.SSRC, "stop=?": false}, db.M{"status": 1, "stop": true})
+			play.Status = 1
+			play.Stop = true
 		}
+		db.Save(db.DBClient, play)
 	}
 	StreamList.Response.Delete(ssrc)
 	if play.T == 0 {
 		StreamList.Succ.Delete(play.ChannelID)
 	}
-	zlmCloseStream(ssrc)
 }

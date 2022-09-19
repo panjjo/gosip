@@ -5,9 +5,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"sort"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/panjjo/gosip/db"
@@ -23,7 +21,7 @@ func Start() {
 	db.DBClient.AutoMigrate(new(Channels))
 	db.DBClient.AutoMigrate(new(Streams))
 	db.DBClient.AutoMigrate(new(m.SysInfo))
-	db.DBClient.AutoMigrate(new(RecordFiles))
+	db.DBClient.AutoMigrate(new(Files))
 
 	LoadSYSInfo()
 
@@ -123,40 +121,4 @@ func sipResponse(tx *sip.Transaction) (*sip.Response, error) {
 		return response, utils.NewError(nil, "response fail", response.StatusCode(), response.Reason(), "tx key:", tx.Key())
 	}
 	return response, nil
-}
-
-func checkSign(uri, token string, data interface{}) (ok bool, msg string) {
-	if config.MOD == MODDEBUG {
-		return true, ""
-	}
-	key := []string{}
-	params := map[string]string{}
-	switch data := data.(type) {
-	case url.Values:
-		for k, v := range data {
-			params[k] = v[0]
-			key = append(key, k)
-		}
-	case map[string]string:
-		for k := range data {
-			key = append(key, k)
-		}
-		params = data
-	default:
-		return false, "type error"
-	}
-	sign, ok := params["sign"]
-	if !ok {
-		return false, "miss sign"
-	}
-	sort.Strings(key)
-	strs := []string{}
-	for _, v := range key {
-		if v == "sign" {
-			continue
-		}
-		strs = append(strs, fmt.Sprintf("%s=%v", v, params[v]))
-	}
-	fullstr := uri + strings.Join(strs, "&")
-	return sign == utils.GetMD5(fullstr+token), fullstr
 }

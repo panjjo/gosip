@@ -15,19 +15,43 @@ import (
 type Streams struct {
 	db.DBModel
 	// 0  直播 1 历史
-	T          int
-	SSRC       string
-	DeviceID   string
-	ChannelID  string
-	StreamType string //  pull 媒体服务器主动拉流，push 监控设备主动推流
-	Status     int    // 0正常 1关闭 -1 尚未开始
-	Ftag       db.M   `gorm:"column:ftag" sql:"type:json"` // header from params
-	Ttag       db.M   `gorm:"column:ttag" sql:"type:json"` // header to params
-	CallID     string // header callid
-	Time       string
-	Stop       bool
-	Msg        string
-	CseqNo     uint32 `gorm:"column:cseqno"`
+	T int `json:"t" gorm:"column:t"`
+	// 设备ID
+	DeviceID string `json:"deviceid" gorm:"column:deviceid"`
+	// 通道ID
+	ChannelID string `json:"channelid" gorm:"column:channelid"`
+	//  pull 媒体服务器主动拉流，push 监控设备主动推流
+	StreamType string `json:"streamtype" gorm:"column:streamtype"`
+	// 0正常 1关闭 -1 尚未开始
+	Status int `json:"status" gorm:"column:status"`
+	// header from params
+	Ftag db.M `gorm:"column:ftag" sql:"type:json" json:"-"`
+	// header to params
+	Ttag db.M `gorm:"column:ttag" sql:"type:json" json:"-"`
+	// header callid
+	CallID string `json:"callid" gorm:"column:callid"`
+	// 是否停止
+	Stop   bool   `json:"stop" gorm:"column:stop"`
+	Msg    string `json:"msg" gorm:"column:msg"`
+	CseqNo uint32 `json:"cseqno" gorm:"column:cseqno"`
+	// 视频流ID gb28181的ssrc
+	StreamID string `json:"streamid"  gorm:"column:streamid"`
+	// m3u8播放地址
+	HTTP string `json:"http" gorm:"column:http"`
+	// rtmp 播放地址
+	RTMP string `json:"rtmp" gorm:"column:rtmp"`
+	// rtsp 播放地址
+	RTSP string `json:"rtsp" gorm:"column:rtsp"`
+	// flv 播放地址
+	WSFLV string `json:"wsflv" gorm:"column:wsflv"`
+	// zlm是否收到流
+	Stream bool `json:"stream" gorm:"column:stream"`
+
+	// ---
+	S, E time.Time     `json:"-" gorm:"-"`
+	ssrc string        // 国标ssrc 10进制字符串
+	Ext  int64         `json:"-" gorm:"-"` // 流等待过期时间
+	Resp *sip.Response `json:"-" gorm:"-"`
 }
 
 // 当前系统中存在的流列表
@@ -46,7 +70,7 @@ func getSSRC(t int) string {
 	for {
 		StreamList.ssrc++
 		key := fmt.Sprintf("%d%s%04d", t, _sysinfo.Region[3:8], StreamList.ssrc)
-		stream := Streams{SSRC: ssrc2stream(key), Stop: false}
+		stream := Streams{StreamID: ssrc2stream(key), Stop: false}
 		if err := db.Get(db.DBClient, &stream); db.RecordNotFound(err) || stream.CreatedAt == 0 {
 			return key
 		}
@@ -63,42 +87,42 @@ func getSSRC(t int) string {
 // 2. 比对当前streamlist中存在的流，如果不在streamlist或者ssrc与channelid不匹配则关闭
 func CheckStreams() {
 	logrus.Debugln("checkStreamWithCron")
-	var skip int64
+	var skip int
 	for {
 		streams := []Streams{}
-		db.FindT(db.DBClient, new(Streams), &streams, db.M{"status=?": 0}, "", skip, 100, false)
+		db.FindT(db.DBClient, new(Streams), &streams, db.M{"status=?": 0, "streamtype=?": "push"}, "", skip, 100, false)
 		for _, stream := range streams {
-			logrus.Debugln("checkStreamStreamID", stream.SSRC, stream.DeviceID)
-			if p, ok := StreamList.Response.Load(stream.SSRC); ok {
-				playParams := p.(PlayParams)
-				if stream.ChannelID == playParams.ChannelID {
+			logrus.Debugln("checkStreamStreamID", stream.StreamID, stream.DeviceID)
+			if p, ok := StreamList.Response.Load(stream.StreamID); ok {
+				streamActive := p.(*Streams)
+				if streamActive.ChannelID == stream.ChannelID {
 					// 此流在用
 					// 查询media流是否仍然存在。不存在的需要关闭。
-					rtpInfo := zlmGetMediaInfo(playParams.SSRC)
+					rtpInfo := zlmGetMediaInfo(stream.StreamID)
 					if rtpInfo.Exist {
 						// 流仍然存在
 						continue
 					}
-					if !playParams.Stream && time.Now().Unix() < playParams.Ext {
+					if !stream.Stream && time.Now().Unix() < stream.Ext {
 						// 推流尚未成功 未超时
 						continue
 					}
 				}
 			}
-			logrus.Debugln("checkStreamActiveDevice", stream.SSRC, stream.DeviceID)
+			logrus.Debugln("checkStreamActiveDevice", stream.StreamID, stream.DeviceID)
 			device, ok := _activeDevices.Get(stream.DeviceID)
 			if !ok {
 				continue
 			}
 			if device.source == nil {
-				logrus.Warningln("checkStreamDeviceSource is nil", stream.SSRC, stream.DeviceID)
+				logrus.Warningln("checkStreamDeviceSource is nil", stream.StreamID, stream.DeviceID)
 				continue
 			}
-			logrus.Debugln("checkStreamClosed", stream.SSRC, stream.DeviceID)
+			logrus.Debugln("checkStreamClosed", stream.StreamID, stream.DeviceID)
 			// 关闭此流
 			channel := Channels{ChannelID: stream.ChannelID}
 			if err := db.Get(db.DBClient, &channel); err != nil {
-				logrus.Errorln("checkStreamGetchannelError", stream.SSRC, stream.ChannelID, err)
+				logrus.Errorln("checkStreamGetchannelError", stream.StreamID, stream.ChannelID, err)
 				stream.Msg = err.Error()
 				db.Save(db.DBClient, stream)
 				channel = Channels{
@@ -116,6 +140,7 @@ func CheckStreams() {
 				_serverDevices.addr.Params.Add(k, sip.String{Str: v.(string)})
 			}
 			callid := sip.CallID(stream.CallID)
+			stream.CseqNo++
 
 			hb := sip.NewHeaderBuilder().SetToWithParam(channel.addr).SetFrom(_serverDevices.addr).AddVia(&sip.ViaHop{
 				Params: sip.NewParams().Add("branch", sip.String{Str: sip.GenerateBranch()}),
@@ -125,28 +150,29 @@ func CheckStreams() {
 			req.SetRecipient(channel.addr.URI)
 
 			// 不管成功不成功 程序都删除掉，后面开新流，关闭不成功的后面重试
-			StreamList.Response.Delete(stream.SSRC)
+			StreamList.Response.Delete(stream.StreamID)
 			StreamList.Succ.Delete(stream.ChannelID)
 
 			tx, err := srv.Request(req)
 			if err != nil {
-				logrus.Warningln("checkStreamClosedFail", stream.SSRC, err)
+				logrus.Warningln("checkStreamClosedFail", stream.StreamID, err)
 				stream.Msg = err.Error()
 				db.Save(db.DBClient, stream)
 				continue
 			}
 			response := tx.GetResponse()
 			if response == nil {
-				logrus.Warningln("checkStreamClosedFail response is nil", channel.ChannelID, channel.DeviceID, stream.SSRC)
+				logrus.Warningln("checkStreamClosedFail response is nil", channel.ChannelID, channel.DeviceID, stream.StreamID)
 				continue
 			}
 			if response.StatusCode() != http.StatusOK {
 				if response.StatusCode() == 481 {
-					logrus.Infoln("checkStreamClosedFail1", stream.SSRC, response.StatusCode())
+					logrus.Infoln("checkStreamClosedFail1", stream.StreamID, response.StatusCode())
 					stream.Msg = response.Reason()
 					stream.Status = 1
+					stream.Stop = true
 				} else {
-					logrus.Warningln("checkStreamClosedFail1", stream.SSRC, response.StatusCode())
+					logrus.Warningln("checkStreamClosedFail1", stream.StreamID, response.StatusCode())
 					stream.Msg = response.Reason()
 				}
 			} else {
