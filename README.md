@@ -4,7 +4,7 @@ sipserver,GB28181,ZLMediaKit
 # gosip
 和 [ZLMediaKit](https://github.com/xia-chu/ZLMediaKit) 一起使用，zlm配置文件中的webhook请配置为此项目的restfulapi地址，否则部分功能无法使用。
 zlm免编译docker镜像 [zlm docker image](https://hub.docker.com/repository/docker/panjjo/zlmediakit)
-交流方式：请加QQ群-542509000，@bzfj
+交流方式：请加QQ群-542509000，@bzfj，或着加Q：35929310
 
 ---
 ## 2.0 改动说明
