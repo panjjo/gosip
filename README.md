@@ -10,7 +10,7 @@ zlm免编译docker镜像 [zlm docker image](https://hub.docker.com/repository/do
 ## 2.0 改动说明
 - 数据存储从mongo改为mysql，毕竟sql数据库用的人多，nosql比较少
 - 重新整理了api接口，生成了swagger文档，可以直接在线调试
-- go版本升级到1.9
+- go版本升级到1.19
 
 
 ---
