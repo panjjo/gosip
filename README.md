@@ -30,6 +30,38 @@ zlm免编译docker镜像 [zlm docker image](https://hub.docker.com/repository/do
 ### 视频教程
 [![asciicast](./demo/api.png)](https://down-yss.oss-cn-hangzhou.aliyuncs.com/v.m4v)
 
+---
+### API接口filters使用说明
+- filters的格式为 jsonencode 字符串 
+``` json
+    filters='[ 
+        {"field_name":"userid","opertator":"=","value":"123234"},
+        {"field_name":"addtime","opertator":">","value":154324556}, 
+    ]' 
+    // 代表的是 查询userid为123234和添加时间addtime大于154324556的用户列表
+```
+
+- 支持or查询 
+``` json
+     //查询用户id为123或者用户注册时间为234,姓名为345的用户的交易记录,并且交易状态为成功,交易类型为消费,查询条件为 
+      filters='[ 
+          {"field_name":"status","opertator":"=","value":true}, 
+          {"field_name":"type","opertator":"=","value":"consume"}, 
+          { 
+              "or":[ 
+              [ 
+                  {"field_name":"user.add","opertator":"=","value":"234"}, 
+                  {"field_name":"user.name","opertator":"=","value":345} 
+                    ], 
+                    [ 
+                      {"field_name":"userid","opertator":"=","value":"123"}, 
+                    ] 
+                  ] 
+              } 
+      ]'
+ 
+```
+- field_name 可以是返回数据中的任意字段。
 
 ## 功能支持
 - [X] 设备注册管理
