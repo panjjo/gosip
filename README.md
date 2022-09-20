@@ -49,13 +49,13 @@ zlm免编译docker镜像 [zlm docker image](https://hub.docker.com/repository/do
           {"field_name":"type","opertator":"=","value":"consume"}, 
           { 
               "or":[ 
-              [ 
-                  {"field_name":"user.add","opertator":"=","value":"234"}, 
-                  {"field_name":"user.name","opertator":"=","value":345} 
-                    ], 
-                    [ 
-                      {"field_name":"userid","opertator":"=","value":"123"}, 
-                    ] 
+                     [ 
+                       {"field_name":"user.add","opertator":"=","value":"234"}, 
+                       {"field_name":"user.name","opertator":"=","value":345} 
+                     ], 
+                     [ 
+                       {"field_name":"userid","opertator":"=","value":"123"}, 
+                     ] 
                   ] 
               } 
       ]'
