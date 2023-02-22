@@ -117,6 +117,7 @@ func sipPlayPush(data playParams, device Devices, user NVRDevices) (playParams, 
 			StreamType: streamTypePush, //  pull 媒体服务器主动拉流，push 监控设备主动推流
 			Status:     -1,
 			Time:       time.Now().Format("2006-01-02 15:04:05"),
+			TimeStamp:  time.Now().Unix(),
 		})
 		ssrcLock.Unlock()
 	}

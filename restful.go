@@ -18,6 +18,7 @@ import (
 
 func apiAuthCheck(h httprouter.Handle, requiredPassword string) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		logrus.Infoln("restful request:", r.RequestURI, r.URL.Query())
 		// Get the Basic Authentication credentials
 		if ok, msg := checkSign(r.RequestURI, requiredPassword, r.Form); ok {
 			// Delegate request to the given handle

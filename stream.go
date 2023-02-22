@@ -27,6 +27,7 @@ type DeviceStream struct {
 	Ttag       map[string]string // header to params
 	CallID     string            // header callid
 	Time       string
+	TimeStamp  int64 `bson:"timestamp"`
 	Stop       bool
 	SeqNo      uint32 `bson:"seqno"`
 }
@@ -63,10 +64,12 @@ func getSSRC(t int) string {
 // 2. 比对当前_playList中存在的流，如果不在_playlist或者ssrc与deviceid不匹配则关闭
 func checkStream() {
 	logrus.Debugln("checkStreamWithCron")
+	c, c1, err := dbClient.UpdateMany(streamTB, M{"status": -1, "timestamp": M{"$lt": time.Now().Unix() - 30*60}}, M{"$set": M{"stop": true}})
+	logrus.Infoln("closeStream timeout 30*60s, count:", c, "count:", c1, err)
 	var skip int64
 	for {
 		streams := []DeviceStream{}
-		dbClient.Find(streamTB, M{"status": 0}, skip, 100, "", false, &streams)
+		dbClient.Find(streamTB, M{"status": 0, "stop": false}, skip, 100, "", false, &streams)
 		for _, stream := range streams {
 			logrus.Debugln("checkStreamStreamID", stream.SSRC, stream.DeviceID)
 			if p, ok := _playList.ssrcResponse.Load(stream.SSRC); ok {
@@ -130,21 +133,22 @@ func checkStream() {
 			tx, err := srv.Request(req)
 			if err != nil {
 				logrus.Warningln("checkStreamClosedFail", stream.SSRC, err)
-				dbClient.Update(streamTB, M{"ssrc": stream.SSRC, "stop": false}, M{"$set": M{"err": err.Error()}})
+				dbClient.Update(streamTB, M{"ssrc": stream.SSRC, "stop": false}, M{"$set": M{"err": err.Error(), "stop": true}})
 				continue
 			}
 			response := tx.GetResponse()
 			if response == nil {
 				logrus.Warningln("checkStreamClosedFail response is nil", device.DeviceID)
+				dbClient.Update(streamTB, M{"ssrc": stream.SSRC, "stop": false}, M{"$set": M{"err": "checkStreamClosedFail response is nil", "stop": true}})
 				continue
 			}
 			if response.StatusCode() != http.StatusOK {
 				if response.StatusCode() == 481 {
 					logrus.Infoln("checkStreamClosedFail1", stream.SSRC, response.StatusCode())
-					dbClient.Update(streamTB, M{"ssrc": stream.SSRC, "stop": true}, M{"$set": M{"err": response.Reason(), "status": 1}})
+					dbClient.Update(streamTB, M{"ssrc": stream.SSRC, "stop": false}, M{"$set": M{"err": response.Reason(), "status": 1, "stop": true}})
 				} else {
 					logrus.Warningln("checkStreamClosedFail1", stream.SSRC, response.StatusCode())
-					dbClient.Update(streamTB, M{"ssrc": stream.SSRC, "stop": false}, M{"$set": M{"err": response.Reason()}})
+					dbClient.Update(streamTB, M{"ssrc": stream.SSRC, "stop": false}, M{"$set": M{"err": response.Reason()}, "stop": true, "status": 1})
 				}
 				continue
 			}
