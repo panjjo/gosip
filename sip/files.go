@@ -1,6 +1,7 @@
 package sipapi
 
 import (
+	"errors"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -50,24 +51,29 @@ type apiRecordItem struct {
 }
 
 func (ri *apiRecordItem) Start() (string, interface{}) {
+	if config.Record.Recordmax <= 0 {
+		return m.StatusSysERR, errors.New("config record max time invalid.")
+	}
+
 	err := zlmStartRecord(ri.params)
 	if err != nil {
 		return m.StatusParamsERR, err
 	}
-	if config.Record.Recordmax != -1 {
-		go func() {
-			tick := time.NewTicker(time.Duration(config.Record.Recordmax) * time.Second)
-			select {
-			case <-tick.C:
-				// 自动停止录制
-				ri.Stop()
-				url := <-ri.resp
-				notify(notifyRecordStop(url, ri.req))
-			case <-ri.clos:
-				// 调用stop接口
-			}
-		}()
-	}
+
+	go func() {
+		// The duration d must be greater than zero.
+		tick := time.NewTicker(time.Duration(config.Record.Recordmax) * time.Second)
+		select {
+		case <-tick.C:
+			// 自动停止录制
+			ri.Stop()
+			url := <-ri.resp
+			notify(notifyRecordStop(url, ri.req))
+		case <-ri.clos:
+			// 调用stop接口
+		}
+	}()
+
 	err = db.Create(db.DBClient, Files{
 		FID:    ri.id,
 		Stream: ri.params.Get("stream"),
