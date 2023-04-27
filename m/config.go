@@ -120,10 +120,11 @@ func LoadConfig() {
 		}
 	}
 	MConfig.NotifyMap = notifyMap
-	if MConfig.Record.Expire == 0 {
+	if MConfig.Record.Expire <= 0 {
 		MConfig.Record.Expire = 7
 	}
-	if MConfig.Record.Recordmax == 0 {
-		MConfig.Record.Expire = 600
+
+	if MConfig.Record.Recordmax <= 0 {
+		MConfig.Record.Recordmax = 600
 	}
 }
