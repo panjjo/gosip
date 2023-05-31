@@ -54,6 +54,7 @@ func main() {
 }
 
 func init() {
+	initLog()
 	m.LoadConfig()
 	_cron()
 }
