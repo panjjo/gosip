@@ -43,6 +43,10 @@ func ZLMWebHook(c *gin.Context) {
 			"enableRtxp": m.MConfig.Stream.RTMP,
 			"msg":        "success",
 		})
+	case "on_server_keepalive":
+		c.JSON(http.StatusOK, map[string]any{
+			"code": 0,
+			"msg":  "success"})
 	case "on_stream_none_reader":
 		// 无人阅读通知 关闭流
 		zlmStreamNoneReader(c)
