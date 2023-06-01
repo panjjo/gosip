@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
+
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/panjjo/gorm"
 	//  _ "github.com/jinzhu/gorm/dialects/postgres"
