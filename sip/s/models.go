@@ -107,11 +107,28 @@ var (
 <DeviceID>%s</DeviceID>
 </Query>
 `
+
+	DevicePTZXML = `<?xml version="1.0" encoding="GB2312"?>
+<Control>
+<CmdType>DeviceControl</CmdType>
+<SN>%d</SN>
+<DeviceID>%s</DeviceID>
+<PTZCmd>%s</PTZCmd>
+<Info>
+<ControlPriority>5</ControlPriority>
+</Info>
+</Control>
+`
 )
 
 // GetDeviceInfoXML 获取设备详情指令
 func GetDeviceInfoXML(id string) []byte {
 	return []byte(fmt.Sprintf(DeviceInfoXML, utils.RandInt(100000, 999999), id))
+}
+
+// GetDevicePTZXML 获取设备ptz指令
+func GetDevicePTZXML(id string, cmd string) []byte {
+	return []byte(fmt.Sprintf(DevicePTZXML, utils.RandInt(100000, 999999), id, cmd))
 }
 
 // GetCatalogXML 获取NVR下设备列表指令
