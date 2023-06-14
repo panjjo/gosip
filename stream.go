@@ -46,15 +46,17 @@ func getSSRC(t int) string {
 	r := false
 	for {
 		_playList.ssrc++
+		// ssrc 最大为4位数，超过后从1开始重新计算
+		if _playList.ssrc > 9000 && !r {
+			_playList.ssrc = 1
+			r = true
+		}
 		key := fmt.Sprintf("%d%s%04d", t, _sysinfo.Region[3:8], _playList.ssrc)
 		stream := DeviceStream{}
 		if err := dbClient.Get(streamTB, M{"ssrc": ssrc2stream(key), "stop": false}, &stream); err == mongo.ErrNoDocuments || stream.SSRC == "" {
 			return key
 		}
-		if _playList.ssrc > 9000 && !r {
-			_playList.ssrc = 0
-			r = true
-		}
+
 	}
 }
 
