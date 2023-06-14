@@ -69,14 +69,15 @@ func getSSRC(t int) string {
 	r := false
 	for {
 		StreamList.ssrc++
+		// ssrc最大为四位数，超过时从1开始重新计算
+		if StreamList.ssrc > 9000 && !r {
+			StreamList.ssrc = 0
+			r = true
+		}
 		key := fmt.Sprintf("%d%s%04d", t, _sysinfo.Region[3:8], StreamList.ssrc)
 		stream := Streams{StreamID: ssrc2stream(key), Stop: false}
 		if err := db.Get(db.DBClient, &stream); db.RecordNotFound(err) || stream.CreatedAt == 0 {
 			return key
-		}
-		if StreamList.ssrc > 9000 && !r {
-			StreamList.ssrc = 0
-			r = true
 		}
 	}
 }
