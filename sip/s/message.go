@@ -83,6 +83,8 @@ type Message interface {
 
 	IsCancel() bool
 	IsAck() bool
+
+	SetConnection(conn Connection)
 }
 
 type message struct {
@@ -93,6 +95,8 @@ type message struct {
 	body         []byte
 	source, dest net.Addr
 	startLine    func() string
+	// connection tcp/udp
+	conn Connection
 }
 
 // MessageID MessageID
@@ -149,7 +153,7 @@ func (msg *message) SetBody(body []byte, setContentLength bool) {
 	}
 }
 
-//Transport  Transport
+// Transport  Transport
 func (msg *message) Transport() string {
 	if viaHop, ok := msg.ViaHop(); ok {
 		return viaHop.Transport
@@ -178,7 +182,7 @@ func (msg *message) SetDestination(dest net.Addr) {
 }
 
 // URI  A SIP or SIPS URI, including all params and URI header params.
-//noinspection GoNameStartsWithPackageName
+// noinspection GoNameStartsWithPackageName
 type URI struct {
 	// True if and only if the URI is a SIPS URI.
 	FIsEncrypted bool

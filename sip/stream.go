@@ -145,8 +145,9 @@ func CheckStreams() {
 
 			hb := sip.NewHeaderBuilder().SetToWithParam(channel.addr).SetFrom(_serverDevices.addr).AddVia(&sip.ViaHop{
 				Params: sip.NewParams().Add("branch", sip.String{Str: sip.GenerateBranch()}),
-			}).SetContentType(&sip.ContentTypeSDP).SetMethod(sip.BYE).SetContact(_serverDevices.addr).SetCallID(&callid).SetSeqNo(uint(stream.CseqNo))
+			}).SetContentType(&sip.ContentTypeSDP).SetMethod(sip.BYE).SetContact(_serverDevices.addr).SetCallID(&callid).SetSeqNo(uint(stream.CseqNo)).SetTransport(device.conn.Network())
 			req := sip.NewRequest("", sip.BYE, channel.addr.URI, sip.DefaultSipVersion, hb.Build(), nil)
+			req.SetConnection(device.conn)
 			req.SetDestination(device.source)
 			req.SetRecipient(channel.addr.URI)
 

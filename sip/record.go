@@ -29,9 +29,10 @@ func SipRecordList(to *Channels, start, end int64) (*Records, error) {
 	defer _recordList.Delete(recordKey)
 	hb := sip.NewHeaderBuilder().SetTo(to.addr).SetFrom(_serverDevices.addr).AddVia(&sip.ViaHop{
 		Params: sip.NewParams().Add("branch", sip.String{Str: sip.GenerateBranch()}),
-	}).SetContentType(&sip.ContentTypeXML).SetMethod(sip.MESSAGE)
+	}).SetContentType(&sip.ContentTypeXML).SetMethod(sip.MESSAGE).SetTransport(device.conn.Network())
 	req := sip.NewRequest("", sip.MESSAGE, to.addr.URI, sip.DefaultSipVersion, hb.Build(), sip.GetRecordInfoXML(to.ChannelID, sn, start, end))
 	req.SetDestination(device.source)
+	req.SetConnection(device.conn)
 	tx, err := srv.Request(req)
 	if err != nil {
 		return nil, err

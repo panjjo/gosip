@@ -16,6 +16,7 @@ type Config struct {
 	DB        db.Config         `json:"database" yaml:"database" mapstructure:"database"`
 	LogLevel  string            `json:"logger" yaml:"logger" mapstructure:"logger"`
 	UDP       string            `json:"udp" yaml:"udp" mapstructure:"udp"`
+	TCP       string            `json:"tcp" yaml:"tcp" mapstructure:"tcp"`
 	API       string            `json:"api" yaml:"api" mapstructure:"api"`
 	Secret    string            `json:"secret" yaml:"secret" mapstructure:"secret"`
 	Media     MediaServer       `json:"media" yaml:"media" mapstructure:"media"`

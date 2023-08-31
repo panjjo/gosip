@@ -137,9 +137,10 @@ func sipPlayPush(data *Streams, channel Channels, device Devices) (*Streams, err
 	_serverDevices.addr.Params.Add("tag", sip.String{Str: utils.RandString(20)})
 	hb := sip.NewHeaderBuilder().SetTo(channel.addr).SetFrom(_serverDevices.addr).AddVia(&sip.ViaHop{
 		Params: sip.NewParams().Add("branch", sip.String{Str: sip.GenerateBranch()}),
-	}).SetContentType(&sip.ContentTypeSDP).SetMethod(sip.INVITE).SetContact(_serverDevices.addr)
+	}).SetContentType(&sip.ContentTypeSDP).SetMethod(sip.INVITE).SetContact(_serverDevices.addr).SetTransport(device.conn.Network())
 	req := sip.NewRequest("", sip.INVITE, channel.addr.URI, sip.DefaultSipVersion, hb.Build(), b)
 	req.SetDestination(device.source)
+	req.SetConnection(device.conn)
 	req.AppendHeader(&sip.GenericHeader{HeaderName: "Subject", Contents: fmt.Sprintf("%s:%s,%s:%s", channel.ChannelID, data.StreamID, _serverDevices.DeviceID, data.StreamID)})
 	req.SetRecipient(channel.addr.URI)
 	tx, err := srv.Request(req)

@@ -58,11 +58,14 @@ type Devices struct {
 	// Source
 	Source string `json:"source"  gorm:"column:source"`
 
-	Sys m.SysInfo `json:"sysinfo" gorm:"-"`
+	Sys          m.SysInfo    `json:"sysinfo" gorm:"-"`
+	Expires      *sip.Expires `json:"expires" gorm:"column:expires"`
+	RegisterTime int64        `json:"registerTime" gorm:"column:registerTime"`
 
 	//----
-	addr   *sip.Address `gorm:"-"`
-	source net.Addr     `gorm:"-"`
+	addr   *sip.Address   `gorm:"-"`
+	source net.Addr       `gorm:"-"`
+	conn   sip.Connection `gorm:"-"`
 }
 
 // Channels 摄像头通道信息
@@ -181,6 +184,7 @@ func parserDevicesFromReqeust(req *sip.Request) (Devices, bool) {
 	u.addr = sip.NewAddressFromFromHeader(header)
 	u.Source = req.Source().String()
 	u.source = req.Source()
+	u.conn = req.Connection()
 	return u, true
 }
 
@@ -188,28 +192,33 @@ func parserDevicesFromReqeust(req *sip.Request) (Devices, bool) {
 func sipDeviceInfo(to Devices) {
 	hb := sip.NewHeaderBuilder().SetTo(to.addr).SetFrom(_serverDevices.addr).AddVia(&sip.ViaHop{
 		Params: sip.NewParams().Add("branch", sip.String{Str: sip.GenerateBranch()}),
-	}).SetContentType(&sip.ContentTypeXML).SetMethod(sip.MESSAGE)
+	}).SetContentType(&sip.ContentTypeXML).SetMethod(sip.MESSAGE).SetTransport(to.conn.Network())
+
 	req := sip.NewRequest("", sip.MESSAGE, to.addr.URI, sip.DefaultSipVersion, hb.Build(), sip.GetDeviceInfoXML(to.DeviceID))
 	req.SetDestination(to.source)
+	req.SetConnection(to.conn)
+
 	tx, err := srv.Request(req)
 	if err != nil {
 		logrus.Warnln("sipDeviceInfo  error,", err)
 		return
 	}
-	_, err = sipResponse(tx)
+	resp, err := sipResponse(tx)
 	if err != nil {
 		logrus.Warnln("sipDeviceInfo  response error,", err)
 		return
 	}
+	logrus.Debugln("deviceId:", to.DeviceID, " recv resp:", resp.String())
 }
 
 // sipCatalog 获取注册设备包含的列表
 func sipCatalog(to Devices) {
 	hb := sip.NewHeaderBuilder().SetTo(to.addr).SetFrom(_serverDevices.addr).AddVia(&sip.ViaHop{
 		Params: sip.NewParams().Add("branch", sip.String{Str: sip.GenerateBranch()}),
-	}).SetContentType(&sip.ContentTypeXML).SetMethod(sip.MESSAGE)
+	}).SetContentType(&sip.ContentTypeXML).SetMethod(sip.MESSAGE).SetTransport(to.conn.Network())
 	req := sip.NewRequest("", sip.MESSAGE, to.addr.URI, sip.DefaultSipVersion, hb.Build(), sip.GetCatalogXML(to.DeviceID))
 	req.SetDestination(to.source)
+	req.SetConnection(to.conn)
 	tx, err := srv.Request(req)
 	if err != nil {
 		logrus.Warnln("sipCatalog  error,", err)

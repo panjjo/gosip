@@ -3,6 +3,7 @@ database:
   dialect: mysql # mysql postgresql sqllite
   url: root:123456@tcp(localhost:3307)/gosip?charset=utf8&parseTime=True&loc=Local # 数据库地址
 udp: 0.0.0.0:5060 # sip服务器udp端口
+tcp: 0.0.0.0:5060 # sip服务器tcp端口
 api: 0.0.0.0:8090 # sip服务 restfulapi 端口
 secret: z9hG4bK1233983766 # restful接口验证key 验证请求使用
 logger: trace
