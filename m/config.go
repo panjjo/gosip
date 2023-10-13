@@ -76,10 +76,11 @@ func DefaultInfo() *SysInfo {
 
 var MConfig *Config
 
-func LoadConfig() {
-	viper.SetConfigType("yml")
-	viper.SetConfigName("config")
-	viper.AddConfigPath("./")
+func LoadConfig(fpath string) {
+	// viper.SetConfigType("yml")
+	// viper.SetConfigName("gosip")
+	// viper.AddConfigPath(filepath.Dir(fpath))
+	viper.SetConfigFile(fpath)
 	viper.SetDefault("logger", "debug")
 	viper.SetDefault("udp", "0.0.0.0:5060")
 	viper.SetDefault("api", "0.0.0.0:8090")
