@@ -33,10 +33,10 @@ func (p *Packet) nextLine() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if len(str) >= 2 {
-		str = str[:len(str)-2]
-	}
-	return str, err
+	// Trim the newline characters
+	str = strings.TrimSuffix(str, "\r\n")
+	str = strings.TrimSuffix(str, "\n")
+	return str, nil
 }
 
 func (p *Packet) bodyLength() int {
