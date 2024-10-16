@@ -20,7 +20,7 @@ func SipRecordList(to *Channels, start, end int64) (*Records, error) {
 	defer close(resp)
 	device, ok := _activeDevices.Get(to.DeviceID)
 	if !ok {
-		return nil, errors.New("设备不在线")
+		return nil, errors.New(fmt.Sprintf("设备[%s]不在线", to.DeviceID))
 	}
 	channelURI, _ := sip.ParseURI(to.URIStr)
 	to.addr = &sip.Address{URI: channelURI}

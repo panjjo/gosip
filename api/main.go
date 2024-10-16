@@ -36,6 +36,10 @@ func Init(r *gin.Engine) {
 	{
 		r.GET("/channels/:id/records", api.RecordsList)
 	}
+	// PTZ 控制
+	{
+		r.POST("/devices/:id/ptz", api.PTZCtrl)
+	}
 	// zlm webhook
 	{
 		r.POST("/zlm/webhook/:method", api.ZLMWebHook)

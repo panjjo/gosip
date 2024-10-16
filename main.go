@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"net/http"
 	_ "net/http/pprof"
 
@@ -36,6 +37,9 @@ import (
 // @securityDefinitions.basic BasicAuth
 
 func main() {
+	var config_fpath = flag.String("c", "./conf.yml", "set a config file")
+	flag.Parse()
+	m.LoadConfig(*config_fpath)
 	//pprof
 	go func() {
 		http.ListenAndServe("0.0.0.0:6060", nil)
@@ -54,7 +58,7 @@ func main() {
 }
 
 func init() {
-	m.LoadConfig()
+	initLog()
 	_cron()
 }
 
