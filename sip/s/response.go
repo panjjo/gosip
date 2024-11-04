@@ -80,6 +80,10 @@ func NewResponse(
 	return res
 }
 
+func (res *Response) SetConnection(conn Connection) {
+	res.conn = conn
+}
+
 // Reason Reason
 func (res *Response) Reason() string {
 	return res.reason

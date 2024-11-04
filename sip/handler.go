@@ -3,6 +3,7 @@ package sipapi
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/panjjo/gosip/db"
 	sip "github.com/panjjo/gosip/sip/s"
@@ -88,6 +89,7 @@ func handlerRegister(req *sip.Request, tx *sip.Transaction) {
 				fromUser.PWD = user.PWD
 				user = fromUser
 			}
+			user.conn = fromUser.conn
 			user.addr = fromUser.addr
 			authenticateHeader := hdrs[0].(*sip.GenericHeader)
 			auth := sip.AuthFromValue(authenticateHeader.Contents)
@@ -95,22 +97,35 @@ func handlerRegister(req *sip.Request, tx *sip.Transaction) {
 			auth.SetUsername(user.DeviceID)
 			auth.SetMethod(string(req.Method()))
 			auth.SetURI(auth.Get("uri"))
+			// 验证成功
 			if auth.CalcResponse() == auth.Get("response") {
-				// 验证成功
-				// 记录活跃设备
+				tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "OK", nil))
+
 				user.source = fromUser.source
 				user.addr = fromUser.addr
-				_activeDevices.Store(user.DeviceID, user)
-				if !user.Regist {
-					// 第一次激活，保存数据库
-					user.Regist = true
-					db.DBClient.Save(&user)
-					logrus.Infoln("new user regist,id:", user.DeviceID)
+
+				if hdr := req.GetHeaders("Expires"); len(hdr) > 0 {
+					user.Expires = hdr[0].(*sip.Expires)
+					user.RegisterTime = time.Now().Unix()
 				}
-				tx.Respond(sip.NewResponseFromRequest("", req, http.StatusOK, "OK", nil))
-				// 注册成功后查询设备信息，获取制作厂商等信息
+				if *user.Expires > 0 {
+					_activeDevices.Store(user.DeviceID, user)
+					// 注册成功后查询设备信息，获取制作厂商等信息
+					go sipDeviceInfo(fromUser)
+					if !user.Regist {
+						// 第一次激活，保存数据库
+						user.Regist = true
+						db.DBClient.Save(&user)
+						logrus.Infoln("new user regist,id:", user.DeviceID)
+					}
+				} else {
+					user.Regist = false
+					db.DBClient.Save(&user)
+					_activeDevices.Delete(user.DeviceID)
+				}
+
 				go notify(notifyDevicesRegister(user))
-				go sipDeviceInfo(fromUser)
+
 				return
 			}
 		}

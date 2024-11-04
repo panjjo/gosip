@@ -17,14 +17,16 @@ type Packet struct {
 	reader     *bufio.Reader
 	raddr      net.Addr
 	bodylength int
+	conn       Connection
 }
 
-func newPacket(data []byte, raddr net.Addr) Packet {
+func newPacket(data []byte, raddr net.Addr, conn Connection) Packet {
 	logrus.Traceln("receive new packet,from:", raddr.String(), string(data))
 	return Packet{
 		reader:     bufio.NewReader(bytes.NewReader(data)),
 		raddr:      raddr,
 		bodylength: getBodyLength(data),
+		conn:       conn,
 	}
 }
 
@@ -89,6 +91,16 @@ func newUDPConnection(baseConn net.Conn) Connection {
 	return conn
 }
 
+func newTCPConnection(baseConn net.Conn) Connection {
+	conn := &connection{
+		baseConn: baseConn,
+		laddr:    baseConn.LocalAddr(),
+		raddr:    baseConn.RemoteAddr(),
+		logKey:   "tcpConnection",
+	}
+	return conn
+}
+
 func (conn *connection) Read(buf []byte) (int, error) {
 	var (
 		num int
@@ -126,10 +138,16 @@ func (conn *connection) Write(buf []byte) (int, error) {
 }
 
 func (conn *connection) WriteTo(buf []byte, raddr net.Addr) (num int, err error) {
-	num, err = conn.baseConn.(net.PacketConn).WriteTo(buf, raddr)
+	if conn.Network() == "TCP" {
+		num, err = conn.baseConn.Write(buf)
+	} else {
+		num, err = conn.baseConn.(net.PacketConn).WriteTo(buf, raddr)
+	}
+
 	if err != nil {
 		return num, utils.NewError(err, conn.logKey, "writeTo", conn.baseConn.LocalAddr().String(), raddr.String())
 	}
+
 	logrus.Tracef("writeTo %d , %s -> %s \n %s", num, conn.baseConn.LocalAddr(), raddr.String(), string(buf[:num]))
 	return num, err
 }

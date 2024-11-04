@@ -54,6 +54,8 @@ func NewRequestFromResponse(method RequestMethod, inviteResponse *Response) *Req
 		[]byte{},
 	)
 
+	ackRequest.conn = inviteResponse.conn
+
 	CopyHeaders("Via", inviteResponse, ackRequest)
 	viaHop, _ := ackRequest.ViaHop()
 	// update branch, 2xx ACK is separate Tx
@@ -83,6 +85,14 @@ func NewRequestFromResponse(method RequestMethod, inviteResponse *Response) *Req
 	ackRequest.SetSource(inviteResponse.Destination())
 	ackRequest.SetDestination(inviteResponse.Source())
 	return ackRequest
+}
+
+func (req *Request) SetConnection(conn Connection) {
+	req.conn = conn
+}
+
+func (req *Request) Connection() Connection {
+	return req.conn
 }
 
 // StartLine returns Request Line - RFC 2361 7.1.

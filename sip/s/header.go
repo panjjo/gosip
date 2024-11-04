@@ -107,6 +107,11 @@ func (hb *HeadersBuilder) SetMethod(method RequestMethod) *HeadersBuilder {
 	return hb
 }
 
+func (hb *HeadersBuilder) SetTransport(transport string) *HeadersBuilder {
+	hb.transport = transport
+	return hb
+}
+
 // SetSeqNo SetSeqNo
 func (hb *HeadersBuilder) SetSeqNo(seqNo uint) *HeadersBuilder {
 	hb.cseq.SeqNo = uint32(seqNo)
@@ -648,7 +653,7 @@ func (params *headerParams) Equals(other interface{}) bool {
 
 // ==================   ContentLengthHeader   ================
 
-//ContentLength ContentLength header
+// ContentLength ContentLength header
 type ContentLength uint32
 
 func (contentLength ContentLength) String() string {
